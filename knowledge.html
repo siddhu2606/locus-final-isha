@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Sora:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>LOCUS Knowledge</title>
+<style>
+/* Layout: a control-room console. Top rail of chapters, each chapter = live stage (left) + instrument panel (right). */
+:root{
+  --bg:#F4FCFE; --panel:#FFFFFF; --panel2:#E6F8FC; --line:#CDEBF3;
+  --fg:#0B3A4A; --muted:#3F6572; --faint:#7A9AA6;
+  --signal:#F5A524; --signal-ink:#3A2600; --teal:#10B981; --bad:#EF6A6A; --good:#10B981; --blue:#2A78D6;
+  --display:'Sora', 'Trebuchet MS', sans-serif;
+  --body:'Figtree', 'Segoe UI', Arial, sans-serif;
+  --mono:'IBM Plex Mono', Consolas, monospace;
+  --grad:linear-gradient(135deg,#22C3E6 0%,#10B981 100%); --shadow:0 10px 28px rgba(34,195,230,.13);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{background-image:radial-gradient(900px 400px at 85% -100px,rgba(34,195,230,.16),transparent 70%),radial-gradient(700px 380px at 0% 0%,rgba(16,185,129,.1),transparent 70%);background-repeat:no-repeat}
+body{font-family:var(--body);font-size:15px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:1320px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:rgba(244,252,254,.92);backdrop-filter:blur(12px);padding-block:14px 10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand b{font-family:var(--display);font-size:20px;letter-spacing:.12em}
+.brand span{color:var(--muted);font-size:13px}
+.rail{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.rail button{flex:0 0 auto;font:500 13px var(--body);color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.rail button i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.rail button.on{color:#fff;background:var(--grad);border-color:transparent}
+.rail button.on i{color:#E8FFF6}
+.rail button:focus-visible,.btn:focus-visible,.chip:focus-visible,.note:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.chapter{display:none;padding-top:22px}
+.chapter.on{display:block;animation:enter .55s cubic-bezier(.2,.8,.2,1)}
+.chapter.on.back{animation-name:enterBack}
+@keyframes enter{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes enterBack{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+.sweep{position:fixed;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:2px solid var(--signal);pointer-events:none;opacity:0;z-index:20}
+.sweep.go{animation:sweep .7s ease-out}
+@keyframes sweep{from{opacity:.8;transform:scale(1)}to{opacity:0;transform:scale(60)}}
+@media (prefers-reduced-motion:reduce){.chapter.on,.sweep.go{animation:none}}
+.eyebrow{font:600 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--signal)}
+h1,h2{font-family:var(--display);font-weight:700;line-height:1.08;text-wrap:balance;margin:6px 0 8px}
+h1{font-size:clamp(34px,5vw,60px)}
+h2{font-size:clamp(26px,3.4vw,40px)}
+.lede{color:var(--muted);max-width:68ch;margin:0 0 18px;font-size:16px}
+.grid{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.stage canvas{display:block;width:100%;height:auto;touch-action:none}
+.hint{position:absolute;left:12px;bottom:10px;font:12px var(--mono);color:var(--faint);pointer-events:none}
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.box h3{margin:0;font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn,.chip{font:500 13px var(--body);color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.btn:hover,.chip:hover{border-color:var(--faint)}
+.btn.primary{background:var(--grad);color:#fff;border-color:transparent;font-weight:700}
+.chip.on{background:var(--teal);color:#fff;border-color:var(--teal);font-weight:600}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi{background:var(--panel2);border-radius:8px;padding:10px}
+.kpi small{display:block;color:var(--muted);font-size:12px}
+.kpi b{font:600 22px var(--mono);font-variant-numeric:tabular-nums}
+.flag{border-radius:10px;padding:12px 14px;font-weight:500;display:flex;gap:10px;align-items:flex-start}
+.flag.alert{background:var(--signal);color:var(--signal-ink)}
+.flag.fault{background:#FFE3E3;color:#a03434;border:1px solid var(--bad)}
+.flag.ok{background:#DDF6EA;color:#0A6B49;border:1px solid #9FE3C9}
+.flag .tag{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:2px}
+.log{font:12.5px/1.55 var(--mono);color:var(--muted);max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.log div b{color:var(--fg);font-weight:500}
+.trust{display:grid;grid-template-columns:24px 1fr 44px;gap:8px;align-items:center;font:12.5px var(--mono)}
+.bar{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--teal);border-radius:4px;transition:width .2s}
+.small{font-size:13px;color:var(--muted)}
+/* intro */
+.intro{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:900px){.intro{grid-template-columns:minmax(0,1fr)}}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat b{display:block;font:700 30px var(--display);color:var(--signal)}
+.stat span{font-size:13px;color:var(--muted)}
+.changed{display:flex;flex-direction:column;gap:8px;padding:0;margin:0;list-style:none}
+.changed li{background:var(--panel);border-left:3px solid var(--teal);padding:10px 12px;border-radius:0 8px 8px 0;font-size:14px}
+.notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.note{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;color:var(--fg);font:inherit;display:flex;flex-direction:column;gap:4px;transition:transform .15s,border-color .15s}
+.note:hover{transform:translateY(-2px);border-color:var(--teal)}
+.note .n{font:700 22px var(--display);color:var(--teal)}
+.note.pick{border-color:var(--signal)}
+.note.pick .n{color:var(--signal)}
+.note em{font-style:normal;font-size:12px;color:var(--muted)}
+.ambient{width:100%;height:150px;display:block;border-radius:10px;background:var(--panel);border:1px solid var(--line);margin-bottom:12px}
+/* gates */
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;position:relative;padding:18px}
+@media (max-width:700px){.pipe{grid-template-columns:minmax(0,1fr)}}
+.gate{background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:12px;min-height:150px;display:flex;flex-direction:column;gap:6px;transition:border-color .25s,background .25s}
+.gate small{font:600 11px var(--mono);letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.gate b{font:600 18px var(--display)}
+.gate p{margin:0;font-size:13px;color:var(--muted)}
+.gate .res{font:600 12px var(--mono);margin-top:auto}
+.gate.pass{border-color:var(--good)} .gate.pass .res{color:var(--good)}
+.gate.fail{border-color:var(--bad)} .gate.fail .res{color:var(--bad)}
+.gate.active{border-color:var(--signal);box-shadow:0 0 0 4px rgba(245,165,36,.2)}
+.gate.answer{background:#DDF6EA}
+.audit{width:100%;border-collapse:collapse;font:12.5px var(--mono)}
+.audit th,.audit td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.audit th{color:var(--muted);font-weight:500}
+.audit tr.deny td:last-child{color:var(--bad)}
+.audit tr.flagged td{background:#FFF1D6}
+.audit tr.flagged td:last-child{color:#8a5a00}
+.tablewrap{overflow-x:auto}
+label.sel{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+/* summary */
+.said{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.said .r{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,1.6fr) auto;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+@media (max-width:700px){.said .r{grid-template-columns:32px minmax(0,1fr)}.said .r .a,.said .r .btn{grid-column:2}}
+.said .r .n{font:700 22px var(--display);color:var(--teal)}
+.said .r.pick{border-color:var(--signal)} .said .r.pick .n{color:var(--signal)}
+.said .r .q{font-weight:600}
+.said .r .a{color:var(--muted);font-size:14px}
+.foot{margin-top:24px;color:var(--faint);font-size:12px}
+
+/* site navigation shared with the rest of LOCUS ISHA */
+.site{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.site .logo{display:flex;align-items:center;gap:9px;font:700 18px var(--display);letter-spacing:.12em;color:var(--fg);text-decoration:none}
+.site .logo small{font:600 12px var(--body);letter-spacing:.03em;color:#0A6B49;background:#DDF6EA;padding:3px 9px;border-radius:99px}
+.site nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.site nav a{font:700 13px var(--body);color:var(--muted);text-decoration:none;border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px}
+.site nav a:hover{border-color:var(--teal);color:#0A6B49}.site nav a.on{background:var(--grad);color:#fff;border-color:transparent}
+.brand span{color:var(--muted);font-size:13px}
+/* how it works */
+.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+@media (max-width:1000px){.flow{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (max-width:560px){.flow{grid-template-columns:minmax(0,1fr)}}
+.step{background:var(--panel);border:1.5px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:border-color .2s,transform .15s}
+.step:hover{transform:translateY(-2px)}.step.on{border-color:var(--teal);box-shadow:0 0 0 4px rgba(16,185,129,.12)}
+.step small{font:600 11px var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}.step b{font:700 16px var(--display)}.step span{font-size:13px;color:var(--muted);line-height:1.45}
+.step .v{font:600 13px var(--mono);color:#0A6B49;margin-top:auto;font-variant-numeric:tabular-nums}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px}
+@media (max-width:800px){.detail{grid-template-columns:minmax(0,1fr)}}
+.detail h3{font:700 18px var(--display);margin:0 0 6px}.detail p{margin:0 0 8px;color:var(--muted);max-width:65ch}
+.formula{background:var(--panel2);border-radius:12px;padding:12px 14px;font:13px/1.8 var(--mono);white-space:pre-wrap;color:var(--fg)}
+.try{display:inline-block;margin-top:6px;font:700 13px var(--body);color:#fff;background:var(--grad);border-radius:99px;padding:8px 14px;text-decoration:none}
+.slider{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.slider input{accent-color:var(--teal)}
+/* glossary */
+.gsearch{width:100%;max-width:420px;height:42px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px;font:15px var(--body);background:#fff;color:var(--fg)}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:12px}
+.term{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}.term b{font:700 15px var(--display);display:block;margin-bottom:3px}.term span{font-size:13.5px;color:var(--muted);line-height:1.5}.term em{font-style:normal;font:600 11px var(--mono);color:var(--faint);letter-spacing:.06em;text-transform:uppercase}
+.cta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}.cta a{font:700 13px var(--body);color:#0A6B49;border:1.5px solid #9FE3C9;background:#fff;border-radius:99px;padding:7px 13px;text-decoration:none}.cta a:hover{border-color:var(--teal)}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<header class="top">
+  <div class="site"><a class="logo" href="./"><svg width="24" height="24" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C3E6"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><path d="M16 2c-5.5 0-10 4.4-10 9.8C6 19 16 30 16 30s10-11 10-18.2C26 6.4 21.5 2 16 2z" fill="url(#lg)"/><circle cx="16" cy="12" r="4" fill="#fff"/></svg>LOCUS <small>Knowledge</small></a>
+    <nav aria-label="Site"><a href="./">Home</a><a href="dashboard.html">Dashboard</a><a href="phone.html">Phone app</a><a href="moving.html">Moving lab</a><a class="on" href="knowledge.html">Knowledge</a></nav></div>
+  <nav class="rail" id="rail" aria-label="Chapters"></nav>
+</header>
+
+<!-- 0 INTRO -->
+<section class="chapter" id="c-intro" data-title="Start" data-tag="R1">
+  <div class="intro">
+    <div>
+      <div class="eyebrow">Mentorship round 1 → what we did</div>
+      <h1>You wrote eight notes. Each one now runs live.</h1>
+      <p class="lede">L.O.C.U.S finds people and assets indoors with a few BLE beacons and noisy signals. It scores how far to trust every beacon and shows an honest uncertainty ellipse instead of a fake-precise dot.</p>
+      <div class="stats">
+        <div class="stat"><b>2.2 m</b><span>median error with 4 beacons (hidden test set)</span></div>
+        <div class="stat"><b>0.83</b><span>AUC catching bad readings, vs 0.71 for rules</span></div>
+        <div class="stat"><b>1.2 s</b><span>to stop trusting a dead beacon</span></div>
+      </div>
+      <div class="eyebrow" style="margin-bottom:8px">Changed since round 1</div>
+      <ul class="changed">
+        <li>The engine learns the noise level live. The demo no longer hands it the true value.</li>
+        <li>ML and rules vote together. ML’s 3-beacon worst case went from 3.03 m to 2.49 m.</li>
+        <li>Live phone RSSI is median-filtered before it becomes a distance.</li>
+      </ul>
+    </div>
+    <div>
+      <canvas class="ambient" id="amb" aria-label="Beacons pulsing around a located tag"></canvas>
+      <div class="eyebrow" style="margin-bottom:8px">Your notes · tap one to open it</div>
+      <div class="notes" id="notes"></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="chapter" id="c-how" data-title="How LOCUS works" data-tag="⚙">
+  <div class="eyebrow">Knowledge · one reading, from beacon to answer</div>
+  <h2>Six steps from a Bluetooth packet to "Ward B, 87%"</h2>
+  <p class="lede">Move the sliders and follow one reading through the pipeline. Every number below is computed live with the same formulas the app uses.</p>
+  <div class="grid" style="grid-template-columns:minmax(0,1fr)">
+    <div class="box">
+      <div class="row" style="gap:18px">
+        <label class="slider" style="flex:1 1 200px">True distance to the beacon <b id="hD">1.00 m</b><input type="range" id="hDi" min="0.1" max="10" step="0.01" value="1"></label>
+        <label class="slider" style="flex:1 1 200px">This phone's real signal at 1 m <b id="hP">-70 dBm</b><input type="range" id="hPi" min="-90" max="-50" step="1" value="-70"></label>
+        <div class="slider" style="flex:1 1 220px">Options<div class="row"><button class="chip on" id="hCal">Calibrated</button><button class="chip" id="hFade">Body blocks the signal</button></div></div>
+      </div>
+    </div>
+    <div class="flow" id="flow"></div>
+    <div class="detail" id="hDet"></div>
+  </div>
+</section>
+
+<!-- 1 GATES -->
+<section class="chapter" id="c-gates" data-title="Access" data-tag="1·3·4">
+  <div class="eyebrow">Notes 1 · 3 · 4 · who may see a location</div>
+  <h2>Every request passes three gates</h2>
+  <p class="lede">Pick who is asking and from which phone, then send the request. Watch it go through each gate. Every request, allowed or denied, lands in the audit log. <a class="try" href="dashboard.html#access">Open the live version in the dashboard</a></p>
+  <div class="grid">
+    <div class="panel">
+      <div class="stage"><div class="pipe" id="pipe">
+        <div class="gate" id="g0"><small>Request</small><b>Where is patient P-112?</b><p>P-112 is in Ward 3, bed 12.</p><span class="res" id="g0r">waiting</span></div>
+        <div class="gate" id="g1"><small>Gate 1 · note 3</small><b>Role</b><p>Admin and Ward 3 nurses may ask about Ward 3. Guards see exits only.</p><span class="res" id="g1r">–</span></div>
+        <div class="gate" id="g2"><small>Gate 2 · note 4</small><b>Staff + device</b><p>A registered phone that L.O.C.U.S itself places inside the hospital.</p><span class="res" id="g2r">–</span></div>
+        <div class="gate" id="g3"><small>Gate 3 · note 1</small><b>Point of contact</b><p>Only the patient’s POC gets the room. Others get “in building”.</p><span class="res" id="g3r">–</span></div>
+        <div class="gate answer" id="g4"><small>Answer</small><b id="ans">–</b><p>A zone, never raw coordinates.</p><span class="res" id="g4r"></span></div>
+      </div></div>
+      <div class="box"><h3>Audit log · note 3</h3><div class="tablewrap"><table class="audit"><thead><tr><th>Time</th><th>Who</th><th>Device</th><th>Asked</th><th>Result</th></tr></thead><tbody id="audit"></tbody></table></div>
+      <p class="small" style="margin:0">Two denials in a row from the same person raise a flag to admin.</p></div>
+    </div>
+    <div class="panel">
+      <div class="box"><h3>Who is asking</h3>
+        <div class="row" id="who"></div>
+      </div>
+      <div class="box"><h3>Which phone</h3>
+        <div class="row" id="dev"></div>
+      </div>
+      <div class="box"><h3>Where L.O.C.U.S places that phone</h3>
+        <div class="row" id="where"></div>
+      </div>
+      <div class="box"><h3>Is this person P-112’s POC?</h3>
+        <div class="row" id="poc"></div>
+      </div>
+      <button class="btn primary" id="send">Send request</button>
+    </div>
+  </div>
+</section>
+
+<!-- 2 OFF RADAR + HEALTH -->
+<section class="chapter" id="c-radar" data-title="Off radar + self-check" data-tag="2·7">
+  <div class="eyebrow">Notes 2 · 7 · off radar → flag, and a building that checks itself</div>
+  <h2>Tag goes quiet → flag. Beacon goes quiet → repair alert.</h2>
+  <p class="lede">A tag walks the ward. Tap a beacon to kill it, or shield the tag. If every beacon loses the tag, the POC gets a flag. If one beacon goes silent for everyone, the beacon is broken. Turn on phone motion to see it hold the track when beacons die. <a class="try" href="dashboard.html#alerts">Open the live version in the dashboard</a></p>
+  <div class="grid">
+    <div class="stage"><canvas id="cv-radar" aria-label="Hospital floor with four beacons and a moving tag"></canvas><div class="hint">tap a beacon to kill / revive · white = true spot · amber = estimate + 90% ellipse</div></div>
+    <div class="panel">
+      <div id="radarFlag" class="flag ok"><span class="tag">Status</span><span>Tag T-07 tracked by 4 beacons.</span></div>
+      <div class="box"><h3>Try it</h3>
+        <div class="row">
+          <button class="chip" id="shield">Shield the tag</button>
+          <button class="chip" id="killC">Kill beacon C</button>
+          <button class="chip" id="kill2">Kill B and C</button>
+          <button class="chip" id="motion">Phone motion</button>
+          <button class="btn" id="radarReset">Reset</button>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><small>Error now (this demo)</small><b id="rErr">–</b></div>
+        <div class="kpi"><small>Median, last 10 s</small><b id="rMed">–</b></div>
+        <div class="kpi"><small>Beacons heard</small><b id="rN">–</b></div>
+        <div class="kpi"><small>Room</small><b id="rRoom">–</b></div>
+      </div>
+      <div class="box"><h3>Trust per beacon</h3><div id="trust" style="display:flex;flex-direction:column;gap:6px"></div></div>
+      <div class="box"><h3>Event log</h3><div class="log" id="rLog"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 UNDERGROUND -->
+<section class="chapter" id="c-under" data-title="Underground" data-tag="5">
+  <div class="eyebrow">Note 5 · underground and temporary sites</div>
+  <h2>Who is still underground?</h2>
+  <p class="lede">A metro tunnel with battery beacons stuck to the walls. No GPS, no Wi-Fi. Tap a beacon to knock it off and watch nearby ellipses grow. Press Evacuate and count everyone out.</p>
+  <div class="grid">
+    <div class="stage"><canvas id="cv-under" aria-label="Tunnel with beacons on the walls and workers"></canvas><div class="hint">tap a beacon to knock it off</div></div>
+    <div class="panel">
+      <div class="kpis">
+        <div class="kpi"><small>Still underground</small><b id="uIn">–</b></div>
+        <div class="kpi"><small>Out at the portal</small><b id="uOut">–</b></div>
+        <div class="kpi"><small>Beacons working</small><b id="uB">–</b></div>
+        <div class="kpi"><small>Evacuation time</small><b id="uT">–</b></div>
+      </div>
+      <div class="row"><button class="btn primary" id="evac">Evacuate</button><button class="btn" id="uReset">Reset</button></div>
+      <div class="box"><h3>Headcount by zone</h3><div id="uZones" class="log" style="max-height:none"></div></div>
+      <p class="small">A knocked-off beacon is caught and ignored, not trusted. Workers near it keep a position, with a wider ellipse.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4 FLIP -->
+<section class="chapter" id="c-flip" data-title="Flip: rescuers as anchors" data-tag="6">
+  <div class="eyebrow">Note 6 · flip the idea</div>
+  <h2>In rubble, the victim is the target and rescuers are the anchors</h2>
+  <p class="lede">Drag the three rescuers around the collapsed building, or press Walk. Each new spot they stand on is a new anchor position, so the dig zone shrinks. Rescuers bunched on one side leave a long, thin ellipse.</p>
+  <div class="grid">
+    <div class="stage"><canvas id="cv-flip" aria-label="Collapsed building with three draggable rescuers and a shrinking dig zone"></canvas><div class="hint">drag R1, R2, R3</div></div>
+    <div class="panel">
+      <div class="kpis">
+        <div class="kpi"><small>Dig zone (90%)</small><b id="fA">–</b></div>
+        <div class="kpi"><small>Long axis</small><b id="fL">–</b></div>
+        <div class="kpi"><small>Readings used</small><b id="fN">–</b></div>
+        <div class="kpi"><small>Off by</small><b id="fE">–</b></div>
+      </div>
+      <div class="row"><button class="btn primary" id="fWalk">Walk around</button><button class="chip" id="fReveal">Reveal victim</button><button class="btn" id="fReset">Reset</button></div>
+      <div class="box"><h3>What it needs</h3>
+        <p class="small" style="margin:0">Each rescuer’s phone knows where it stands (GPS outside, or L.O.C.U.S). The victim’s phone or wearable broadcasts BLE in SOS mode. Concrete blocks signals, so every reading is treated as noisy (σ = 2.5 m here).</p>
+      </div>
+      <p class="small">Concept: the engine already takes anchor positions as input. Here they arrive live.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 CROWD -->
+<section class="chapter" id="c-crowd" data-title="Lost children" data-tag="8">
+  <div class="eyebrow">Note 8 · lost children in huge crowds</div>
+  <h2>A wristband becomes the beacon</h2>
+  <p class="lede">A mela ground: poles at gates and stalls, volunteers whose phones act as moving anchors. The child’s band is paired with the parent’s phone. Let go of the hand, and see the alert fire before anyone reports the child lost.</p>
+  <div class="grid">
+    <div class="stage"><canvas id="cv-crowd" aria-label="Crowd with a parent, a child wristband, poles and volunteers"></canvas><div class="hint">amber = child band · blue = parent · teal dots = volunteers · teal squares = poles</div></div>
+    <div class="panel">
+      <div id="crowdFlag" class="flag ok"><span class="tag">Status</span><span>Band B-31 is with the parent.</span></div>
+      <div class="row"><button class="btn primary" id="letgo">Child lets go</button><button class="btn" id="lost">Report lost</button><button class="btn" id="cReset">Reset</button></div>
+      <div class="kpis">
+        <div class="kpi"><small>Child ↔ parent</small><b id="cD">–</b></div>
+        <div class="kpi"><small>Last zone</small><b id="cZ" style="font-size:16px">–</b></div>
+        <div class="kpi"><small>Anchors in range</small><b id="cN">–</b></div>
+        <div class="kpi"><small>Time to find</small><b id="cT">–</b></div>
+      </div>
+      <div class="box"><h3>Same band in hospitals</h3><p class="small" style="margin:0">Dementia patients who wander, newborn-ward security, patients moved between wards. Only the POC sees the band, through the same gates and audit log as notes 1, 3 and 4.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- GLOSSARY -->
+<section class="chapter" id="c-gloss" data-title="Glossary" data-tag="A–Z">
+  <div class="eyebrow">Knowledge · the words we use</div>
+  <h2>Glossary</h2>
+  <p class="lede">Every term you will hear in the demo, in one line each.</p>
+  <input class="gsearch" id="gq" placeholder="Search, e.g. trust, RSSI, POC" aria-label="Search the glossary" autocomplete="off">
+  <div class="gloss" id="gl"></div>
+  <div class="cta"><a href="dashboard.html">Open the dashboard</a><a href="phone.html">Open the phone app</a><a href="moving.html">Moving beacons lab</a><a href="docs/BEACON_STUDY.html">How many beacons?</a></div>
+</section>
+
+<!-- 6 SUMMARY -->
+<section class="chapter" id="c-sum" data-title="You said → we did" data-tag="✓">
+  <div class="eyebrow">Every note, answered</div>
+  <h2>You said → we did</h2>
+  <p class="lede">Orange rows are the three real-world missions we picked to go deep on.</p>
+  <div class="said" id="said"></div>
+  <p class="foot">All numbers come from simulation with known ground truth. Live demos on this page use a simplified version of the engine; their error readouts are for this demo only. Real-device calibration is next.</p>
+</section>
+</div>
+<div class="sweep" id="sweep"></div>
+<div id="err" hidden style="position:fixed;left:16px;bottom:16px;z-index:30;background:#FFE3E3;color:#a03434;border:1px solid #FF6B5E;border-radius:8px;padding:8px 12px;font:12px monospace"></div>
+
+<script>
+(function(){
+const css=getComputedStyle(document.documentElement);
+const FALL={'--bg':'#F4FCFE','--panel':'#FFFFFF','--panel2':'#E6F8FC','--line':'#CDEBF3','--fg':'#0B3A4A','--muted':'#3F6572','--faint':'#7A9AA6','--signal':'#F5A524','--teal':'#10B981','--bad':'#EF6A6A','--good':'#10B981','--blue':'#2A78D6'};
+const C=n=>{const v=css.getPropertyValue(n).trim();return /^#[0-9a-fA-F]{6}$/.test(v)?v:FALL[n]};
+const COL={bg:C('--bg'),panel:C('--panel'),panel2:C('--panel2'),line:C('--line'),fg:C('--fg'),muted:C('--muted'),faint:C('--faint'),signal:C('--signal'),teal:C('--teal'),bad:C('--bad'),good:C('--good'),blue:C('--blue')};
+const $=id=>document.getElementById(id);
+const rnd=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const hyp=Math.hypot;
+const K90=Math.sqrt(4.605);
+function clock(t){const d=new Date(Date.UTC(2026,0,1,10,42,0)+t*1000);return d.toISOString().substr(11,8)}
+
+/* ---------- stage helper ---------- */
+function Stage(canvas,W,H){
+  this.c=canvas;this.ctx=canvas.getContext('2d');this.W=W;this.H=H;
+  canvas.style.aspectRatio=W+' / '+H;this.resize();
+}
+Stage.prototype.resize=function(){
+  const r=this.c.getBoundingClientRect();if(!r.width)return;
+  const d=window.devicePixelRatio||1;
+  this.c.width=Math.round(r.width*d);this.c.height=Math.round(r.width*this.H/this.W*d);
+  this.cw=r.width;this.ch=r.width*this.H/this.W;
+  this.ctx.setTransform(d,0,0,d,0,0);this.s=this.cw/this.W;
+};
+Stage.prototype.X=function(x){return x*this.s};
+Stage.prototype.Y=function(y){return y*this.s};
+Stage.prototype.world=function(e){const r=this.c.getBoundingClientRect();return{x:(e.clientX-r.left)/this.s,y:(e.clientY-r.top)/this.s}};
+Stage.prototype.clear=function(){const g=this.ctx;g.fillStyle=COL.panel;g.fillRect(0,0,this.cw,this.ch)};
+Stage.prototype.dot=function(x,y,r,fill,stroke){const g=this.ctx;g.beginPath();g.arc(this.X(x),this.Y(y),r,0,7);if(fill){g.fillStyle=fill;g.fill()}if(stroke){g.strokeStyle=stroke;g.lineWidth=2;g.stroke()}};
+Stage.prototype.label=function(t,x,y,col,size,align){const g=this.ctx;g.fillStyle=col||COL.muted;g.font=(size||12)+'px "IBM Plex Mono", Consolas, monospace';g.textAlign=align||'left';g.fillText(t,this.X(x),this.Y(y))};
+Stage.prototype.ellipse=function(x,y,P,col,k){
+  const a=P[0],b=P[1],c=P[3];const tr=a+c,det=a*c-b*b;const disc=Math.sqrt(Math.max(0,tr*tr/4-det));
+  const l1=tr/2+disc,l2=Math.max(1e-6,tr/2-disc);const ang=0.5*Math.atan2(2*b,a-c);const kk=k||K90;
+  const g=this.ctx;g.save();g.translate(this.X(x),this.Y(y));g.rotate(ang);g.beginPath();
+  g.ellipse(0,0,Math.max(2,kk*Math.sqrt(l1)*this.s),Math.max(2,kk*Math.sqrt(l2)*this.s),0,0,7);
+  g.fillStyle=col+'2E';g.fill();g.strokeStyle=col;g.lineWidth=1.6;g.stroke();g.restore();
+  return {major:2*kk*Math.sqrt(l1),area:Math.PI*kk*kk*Math.sqrt(Math.max(det,0))};
+};
+
+/* ---------- chapters & nav ---------- */
+const sections=[...document.querySelectorAll('.chapter')];
+const sims={};
+let cur=0;
+const rail=$('rail');
+sections.forEach((s,i)=>{const b=document.createElement('button');b.innerHTML='<i>'+s.dataset.tag+'</i>'+s.dataset.title;b.onclick=()=>go(i);rail.appendChild(b)});
+function go(i,silent){
+  i=clamp(i,0,sections.length-1);const back=i<cur;
+  sections[cur].classList.remove('on','back');cur=i;
+  const s=sections[i];s.classList.toggle('back',back);s.classList.add('on');
+  [...rail.children].forEach((b,j)=>b.classList.toggle('on',j===i));
+  rail.children[i].scrollIntoView({block:'nearest',inline:'center'});
+  if(!silent){const sw=$('sweep');sw.classList.remove('go');void sw.offsetWidth;sw.classList.add('go');window.scrollTo({top:0})}
+  try{history.replaceState(null,'','#'+s.id.slice(2))}catch(e){}
+  requestAnimationFrame(()=>{Object.values(sims).forEach(m=>m.stage&&m.stage.resize())});
+}
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1)});
+window.addEventListener('resize',()=>Object.values(sims).forEach(m=>m.stage&&m.stage.resize()));
+
+/* ---------- notes data ---------- */
+const NOTES=[
+ [1,'Access only to the POC','Security',2,false,'Gate 3: only the patient’s POC sees the room. Everyone else sees “in building”.'],
+ [2,'Off radar → flag','Security',3,false,'Silent to every beacon for 3 s → flag to the POC with last zone, time and trail.'],
+ [3,'Role-based access + audit log','Security',2,false,'Gate 1 checks the role. Every request, allowed or denied, is logged; repeat denials are flagged.'],
+ [4,'Staff + device location → special access','Security',2,false,'Gate 2: a registered phone that L.O.C.U.S itself places inside the building.'],
+ [5,'Underground & temporary sites','Picked · real world',4,true,'Magnet beacons, learned walls, knocked-off beacons ignored, live headcount by zone.'],
+ [6,'Flip it: rescuers become the anchors','Picked · real world',5,true,'Rescuers are moving anchors. Every step adds geometry and the dig zone shrinks.'],
+ [7,'The building checks its own health','Something new',3,false,'Beacons test each other. A silent beacon becomes a repair alert, and phone motion carries tracking.'],
+ [8,'Lost children: wristband beacon, patients too','Picked · real world',6,true,'BLE wristband paired to the parent, poles and volunteer phones as anchors, early drift alert.'],
+];
+NOTES.forEach(n=>{
+  const b=document.createElement('button');b.className='note'+(n[4]?' pick':'');
+  b.innerHTML='<span class="n">0'+n[0]+'</span><span>'+n[1]+'</span><em>'+n[2]+'</em>';b.onclick=()=>go(n[3]);$('notes').appendChild(b);
+  const r=document.createElement('div');r.className='r'+(n[4]?' pick':'');
+  r.innerHTML='<span class="n">0'+n[0]+'</span><span class="q">'+n[1]+'</span><span class="a">'+n[5]+'</span>';
+  const t=document.createElement('button');t.className='btn';t.textContent='Try it';t.onclick=()=>go(n[3]);r.appendChild(t);$('said').appendChild(r);
+});
+
+/* ---------- ambient ---------- */
+(function(){
+  const cv=$('amb');const st=new Stage(cv,40,15);cv.style.aspectRatio='';cv.style.height='150px';
+  st.resize=function(){const r=cv.getBoundingClientRect();if(!r.width)return;const d=devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;this.cw=r.width;this.ch=r.height;this.ctx.setTransform(d,0,0,d,0,0);this.s=Math.min(r.width/40,r.height/15)};
+  st.resize();
+  const B=[[3,2.5],[37,2.5],[37,12.5],[3,12.5]];let t=0;
+  sims.amb={stage:st,chapter:0,step(dt){t+=dt},draw(){
+    st.clear();const g=st.ctx;const ox=(st.cw-40*st.s)/2;g.save();g.translate(ox,0);
+    const tx=20+9*Math.sin(t*.4),ty=7.5+3*Math.sin(t*.7);
+    B.forEach((b,i)=>{for(let k=0;k<3;k++){const ph=((t*.6+k/3+i*.17)%1);g.beginPath();g.arc(st.X(b[0]),st.Y(b[1]),ph*16*st.s,0,7);g.strokeStyle='rgba(76,201,176,'+(0.5*(1-ph))+')';g.lineWidth=1.5;g.stroke()}
+      g.setLineDash([3,5]);g.beginPath();g.moveTo(st.X(b[0]),st.Y(b[1]));g.lineTo(st.X(tx),st.Y(ty));g.strokeStyle='rgba(63,101,114,.3)';g.stroke();g.setLineDash([]);st.dot(b[0],b[1],5,COL.teal)});
+    st.ellipse(tx,ty,[1.4,0.3,0.3,0.8],COL.signal,1.6);st.dot(tx,ty,5,COL.signal);g.restore();
+  }};
+})();
+
+/* ---------- 1 gates ---------- */
+(function(){
+  const state={who:'nurse3',dev:'reg',where:'in',poc:'yes'};
+  const opts={who:[['admin','Admin'],['nurse3','Nurse, Ward 3'],['nurse5','Nurse, Ward 5'],['guard','Guard']],dev:[['reg','Registered phone'],['own','Personal phone']],where:[['in','Inside hospital'],['out','Off-site']],poc:[['yes','Yes, POC'],['no','No']]};
+  const NAMES={admin:'Admin A-001',nurse3:'Nurse N-204',nurse5:'Nurse N-517',guard:'Guard G-011'};
+  Object.keys(opts).forEach(k=>{opts[k].forEach(([v,l])=>{const b=document.createElement('button');b.className='chip';b.textContent=l;b.dataset.v=v;b.onclick=()=>{state[k]=v;paint()};$(k).appendChild(b)})});
+  function paint(){Object.keys(opts).forEach(k=>[...$(k).children].forEach(b=>b.classList.toggle('on',b.dataset.v===state[k])))}
+  paint();
+  let t0=performance.now(),busy=false,lastDeny={};
+  const G=[0,1,2,3,4].map(i=>$('g'+i));
+  function reset(){G.forEach(g=>g.classList.remove('pass','fail','active'));['g1r','g2r','g3r','g4r'].forEach(i=>$(i).textContent='–');$('ans').textContent='–';$('g0r').textContent='sent'}
+  function decide(){
+    const s=state;
+    const g1=s.who==='admin'||s.who==='nurse3'?[true,'pass: role allows Ward 3']:[false,s.who==='guard'?'denied: guards see exits only':'denied: not your ward'];
+    const g2=s.dev!=='reg'?[false,'denied: phone not registered']:s.where!=='in'?[false,'denied: phone is off-site']:[true,'pass: registered, inside'];
+    const g3=s.poc==='yes'?[true,'pass: POC']:[true,'limited: not POC'];
+    return [g1,g2,g3];
+  }
+  $('send').onclick=()=>{
+    if(busy)return;busy=true;reset();const res=decide();let i=0;
+    G[0].classList.add('active');
+    const stepGate=()=>{
+      G[i].classList.remove('active');i++;
+      if(i<=3){const r=res[i-1];G[i].classList.add('active');
+        setTimeout(()=>{G[i].classList.remove('active');G[i].classList.add(r[0]?'pass':'fail');$('g'+i+'r').textContent=r[1];
+          if(!r[0]){finish(r[1].replace('denied: ',''));return}stepGate()},520);
+      }else finish(null);
+    };
+    const finish=deny=>{
+      const who=NAMES[state.who],dev=(state.dev==='reg'?'Registered':'Personal')+', '+(state.where==='in'?'inside':'off-site');
+      let result,cls='';
+      if(deny){$('ans').textContent='Denied';G[4].classList.add('fail');$('g4r').textContent='nothing revealed';
+        lastDeny[who]=(lastDeny[who]||0)+1;result='Denied: '+deny;cls='deny';
+        if(lastDeny[who]>=2){result='Denied again → flagged to admin';cls='deny flagged'}
+      }else{lastDeny[who]=0;const full=state.poc==='yes';$('ans').textContent=full?'Ward 3 · 87%':'In building';G[4].classList.add('pass');$('g4r').textContent=full?'room shared':'zone hidden';result=full?'Ward 3 · 87% (POC)':'In building (not POC)'}
+      const tr=document.createElement('tr');tr.className=cls;
+      tr.innerHTML='<td>'+clock((performance.now()-t0)/1000)+'</td><td>'+who+'</td><td>'+dev+'</td><td>P-112</td><td>'+result+'</td>';
+      $('audit').prepend(tr);busy=false;
+    };
+    setTimeout(stepGate,450);
+  };
+  [['10:41:02','Nurse N-204','Registered, inside','Ward 3 · 87% (POC)',''],['10:41:40','Guard G-011','Registered, inside','Denied: guards see exits only','deny']].forEach(r=>{const tr=document.createElement('tr');tr.className=r[4];tr.innerHTML='<td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>P-112</td><td>'+r[3]+'</td>';$('audit').appendChild(tr)});
+})();
+
+/* ---------- 2 off radar + health ---------- */
+(function(){
+  const W=32,H=20;const st=new Stage($('cv-radar'),W,H);
+  const B0=[['A',1.2,1.2],['B',30.8,1.2],['C',30.8,18.8],['D',1.2,18.8]];
+  const ROOMS=[['Ward 1',0,12],['Corridor',12,20],['Ward 3',20,32]];
+  let S;
+  function init(){
+    S={t:0,acc:0,tag:{x:6,y:10,tx:6,ty:10},est:[6,10],P:[1,0,0,1],B:B0.map(b=>({n:b[0],x:b[1],y:b[2],alive:true,trust:1,heardTag:0,lastSelf:0,innov:0,faultSent:false})),
+      shield:false,motion:false,errs:[],trail:[],offRadar:false,lastHeard:0,log:[]};
+    addLog('Tracking tag T-07 with beacons A, B, C, D.');
+  }
+  function addLog(m){S&&S.log.unshift('<b>'+clock(S.t)+'</b> '+m);if(S)S.log.length=Math.min(S.log.length,30);$('rLog').innerHTML=S?S.log.map(x=>'<div>'+x+'</div>').join(''):''}
+  function room(x){return (ROOMS.find(r=>x>=r[1]&&x<r[2])||ROOMS[2])[0]}
+  function setFlag(cls,tag,msg){const f=$('radarFlag');f.className='flag '+cls;f.innerHTML='<span class="tag">'+tag+'</span><span>'+msg+'</span>'}
+  init();
+  function step(dt){
+    S.t+=dt;const T=S.tag;
+    const dx=T.tx-T.x,dy=T.ty-T.y,d=hyp(dx,dy);
+    if(d<0.4){T.tx=2+Math.random()*28;T.ty=3+Math.random()*14}
+    const v=1.2,vx=d>0?dx/d*v:0,vy=d>0?dy/d*v:0;T.x+=vx*dt;T.y+=vy*dt;
+    S.acc+=dt;
+    while(S.acc>=0.1){S.acc-=0.1;const h=0.1;
+      // predict
+      if(S.motion){const bias=0.35*Math.sin(S.t/25),sc=1+0.08*Math.sin(S.t/40);const ux=(vx*Math.cos(bias)-vy*Math.sin(bias))*sc,uy=(vx*Math.sin(bias)+vy*Math.cos(bias))*sc;
+        S.est[0]+=ux*h;S.est[1]+=uy*h;S.P[0]+=0.06*h;S.P[3]+=0.06*h;}
+      else{S.P[0]+=1.6*h;S.P[3]+=1.6*h;}
+      // beacon self-check packets
+      S.B.forEach(b=>{if(b.alive)b.lastSelf=S.t;});
+      // tag ranges
+      let heard=0;
+      S.B.forEach(b=>{
+        if(!b.alive||S.shield||Math.random()<0.1){b.trust=Math.max(0,b.trust-0.08);return}
+        const tru=hyp(T.x-b.x,T.y-b.y);const r=Math.max(0.2,tru+rnd()*1.1+(Math.random()<0.06?4+Math.random()*4:0));
+        const ex=S.est[0]-b.x,ey=S.est[1]-b.y,hh=Math.max(0.3,hyp(ex,ey));const Hx=ex/hh,Hy=ey/hh;
+        const Sv=Hx*Hx*S.P[0]+2*Hx*Hy*S.P[1]+Hy*Hy*S.P[3]+1.2;const inn=r-hh;
+        const raw=Math.exp(-inn*inn/(2*Sv*2));b.trust=0.55*b.trust+0.45*raw;b.heardTag=S.t;heard++;
+        if(Math.abs(inn)>3*Math.sqrt(Sv))return;
+        const Kx=(S.P[0]*Hx+S.P[1]*Hy)/Sv,Ky=(S.P[1]*Hx+S.P[3]*Hy)/Sv;
+        S.est[0]+=Kx*inn;S.est[1]+=Ky*inn;
+        const p0=S.P[0],p1=S.P[1],p3=S.P[3];
+        S.P[0]=p0-Kx*(Hx*p0+Hy*p1);S.P[1]=p1-Kx*(Hx*p1+Hy*p3);S.P[3]=p3-Ky*(Hx*p1+Hy*p3);
+      });
+      S.est[0]=clamp(S.est[0],0.3,W-0.3);S.est[1]=clamp(S.est[1],0.3,H-0.3);
+      S.P[0]=Math.min(S.P[0],60);S.P[3]=Math.min(S.P[3],60);
+      if(heard){S.lastHeard=S.t;if(S.offRadar){S.offRadar=false;addLog('Tag T-07 back on radar.')}}
+      S.trail.push([S.est[0],S.est[1]]);if(S.trail.length>150)S.trail.shift();
+      if(!S.offRadar&&!S.shield)S.errs.push(hyp(S.est[0]-T.x,S.est[1]-T.y));if(S.errs.length>100)S.errs.shift();
+      // diagnosis
+      if(S.t-S.lastHeard>3&&!S.offRadar){S.offRadar=true;S.offAt=[S.est[0],S.est[1]];S.offTime=S.t;addLog('<b>FLAG</b> T-07 silent to all beacons. POC alerted.')}
+      S.B.forEach(b=>{if(!b.alive&&S.t-b.lastSelf>3&&!b.faultSent){b.faultSent=true;addLog('<b>REPAIR</b> Beacon '+b.n+' silent to all beacons. Maintenance alert.')}});
+    }
+    const dead=S.B.filter(b=>!b.alive&&b.faultSent).map(b=>b.n);
+    if(S.offRadar)setFlag('alert','Flag → POC','Tag T-07 off radar. Last seen in '+room(S.offAt[0])+' at '+clock(S.offTime-3)+'. Trail shown.');
+    else if(dead.length)setFlag('fault','Repair','Beacon '+dead.join(' and ')+' offline. Replace. Tracking continues with '+S.B.filter(b=>b.alive).map(b=>b.n).join(', ')+'.');
+    else setFlag('ok','Status','Tag T-07 tracked by '+S.B.filter(b=>b.alive).length+' beacons.');
+    const e=hyp(S.est[0]-T.x,S.est[1]-T.y);$('rErr').textContent=S.offRadar||S.shield?'–':e.toFixed(1)+' m';
+    const so=[...S.errs].sort((a,b)=>a-b);$('rMed').textContent=so.length?so[so.length>>1].toFixed(1)+' m':'–';
+    $('rN').textContent=S.shield?'0':S.B.filter(b=>b.alive&&S.t-b.heardTag<1).length;$('rRoom').textContent=room(S.est[0]);
+    $('trust').innerHTML=S.B.map(b=>'<div class="trust"><span>'+b.n+'</span><span class="bar"><i style="width:'+(b.trust*100).toFixed(0)+'%;background:'+(b.alive?COL.teal:COL.bad)+'"></i></span><span>'+b.trust.toFixed(2)+'</span></div>').join('');
+  }
+  function draw(){
+    st.clear();const g=st.ctx;
+    g.strokeStyle=COL.line;g.lineWidth=3;
+    [[12,0,12,7.5],[12,12.5,12,20],[20,0,20,7.5],[20,12.5,20,20]].forEach(w=>{g.beginPath();g.moveTo(st.X(w[0]),st.Y(w[1]));g.lineTo(st.X(w[2]),st.Y(w[3]));g.stroke()});
+    ROOMS.forEach(r=>st.label(r[0],(r[1]+r[2])/2,H/2+0.3,COL.faint,12,'center'));
+    // inter-beacon links
+    for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){const a=S.B[i],b=S.B[j];const ok=a.alive&&b.alive;g.setLineDash(ok?[]:[6,6]);g.strokeStyle=ok?'rgba(16,185,129,.22)':'rgba(239,106,106,.6)';g.lineWidth=1.5;g.beginPath();g.moveTo(st.X(a.x),st.Y(a.y));g.lineTo(st.X(b.x),st.Y(b.y));g.stroke()}
+    g.setLineDash([]);
+    // trail when off radar
+    if(S.offRadar){g.strokeStyle=COL.signal;g.lineWidth=2;g.setLineDash([2,4]);g.beginPath();S.trail.forEach((p,i)=>i?g.lineTo(st.X(p[0]),st.Y(p[1])):g.moveTo(st.X(p[0]),st.Y(p[1])));g.stroke();g.setLineDash([]);
+      st.dot(S.offAt[0],S.offAt[1],9,null,COL.signal);st.label('last seen',S.offAt[0]+0.8,S.offAt[1]-0.6,COL.signal,12)}
+    // ranges
+    S.B.forEach(b=>{if(b.alive&&!S.shield){g.strokeStyle='rgba(63,101,114,'+(0.12+0.3*b.trust)+')';g.lineWidth=1;g.beginPath();g.moveTo(st.X(b.x),st.Y(b.y));g.lineTo(st.X(S.est[0]),st.Y(S.est[1]));g.stroke()}});
+    if(!S.offRadar)st.ellipse(S.est[0],S.est[1],S.P,COL.signal);
+    st.dot(S.tag.x,S.tag.y,5,S.shield?COL.faint:COL.fg);
+    if(!S.offRadar)st.dot(S.est[0],S.est[1],6,COL.signal);
+    S.B.forEach(b=>{st.dot(b.x,b.y,9,b.alive?COL.teal:COL.panel,b.alive?null:COL.bad);if(!b.alive){g.strokeStyle=COL.bad;g.lineWidth=2;const x=st.X(b.x),y=st.Y(b.y);g.beginPath();g.moveTo(x-5,y-5);g.lineTo(x+5,y+5);g.moveTo(x+5,y-5);g.lineTo(x-5,y+5);g.stroke()}
+      st.label(b.n,b.x+(b.x<W/2?0.9:-0.9),b.y+(b.y<H/2?1.5:-0.9),b.alive?COL.teal:COL.bad,14,b.x<W/2?'left':'right')});
+  }
+  function setAlive(names){S.B.forEach(b=>{const want=!names.includes(b.n);if(b.alive!==want){b.alive=want;if(want){b.faultSent=false;addLog('Beacon '+b.n+' back online.')}}});sync()}
+  function sync(){$('shield').classList.toggle('on',S.shield);$('motion').classList.toggle('on',S.motion);
+    const dead=S.B.filter(b=>!b.alive).map(b=>b.n).join('');$('killC').classList.toggle('on',dead==='C');$('kill2').classList.toggle('on',dead==='BC')}
+  $('cv-radar').addEventListener('pointerdown',e=>{const p=st.world(e);const b=S.B.find(b=>hyp(b.x-p.x,b.y-p.y)<2.2);if(b){b.alive=!b.alive;if(b.alive){b.faultSent=false;addLog('Beacon '+b.n+' back online.')}sync()}});
+  $('shield').onclick=()=>{S.shield=!S.shield;addLog(S.shield?'Tag shielded (wrapped in foil / carried out).':'Shield removed.');sync()};
+  $('killC').onclick=()=>{const d=S.B.filter(b=>!b.alive).map(b=>b.n).join('');setAlive(d==='C'?[]:['C'])};
+  $('kill2').onclick=()=>{const d=S.B.filter(b=>!b.alive).map(b=>b.n).join('');setAlive(d==='BC'?[]:['B','C'])};
+  $('motion').onclick=()=>{S.motion=!S.motion;S.errs=[];addLog(S.motion?'Phone motion on: step counter + compass (20° drifting error).':'Phone motion off.');sync()};
+  $('radarReset').onclick=()=>{init();sync()};
+  sims.radar={stage:st,chapter:3,step,draw};
+})();
+
+/* ---------- 3 underground ---------- */
+(function(){
+  const W=60,H=30;const st=new Stage($('cv-under'),W,H);
+  const MAIN=[[3,25],[18,25],[30,17],[44,15],[57,8]];const GAL=[[3,25],[18,25],[30,17],[35,4]];
+  function lens(p){const L=[0];for(let i=1;i<p.length;i++)L.push(L[i-1]+hyp(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]));return L}
+  const LM=lens(MAIN),LG=lens(GAL);
+  function at(p,L,s){s=clamp(s,0,L[L.length-1]);let i=1;while(i<L.length-1&&L[i]<s)i++;const f=(s-L[i-1])/(L[i]-L[i-1]);const x=p[i-1][0]+f*(p[i][0]-p[i-1][0]),y=p[i-1][1]+f*(p[i][1]-p[i-1][1]);const dx=p[i][0]-p[i-1][0],dy=p[i][1]-p[i-1][1],d=hyp(dx,dy);return{x,y,nx:-dy/d,ny:dx/d}}
+  const ZONES=[['Portal',0,12],['Zone A',12,30],['Zone B',30,46],['Face',46,99]];
+  function zoneOf(w){if(w.gal&&w.s>LG[2]+0.5)return'Side gallery';return(ZONES.find(z=>w.s>=z[1]&&w.s<z[2])||ZONES[3])[0]}
+  let S;
+  function init(){
+    const beacons=[];
+    [6,16,26,36,46,56,LM[4]-1].forEach((s,i)=>{const p=at(MAIN,LM,s);const side=i%2?1:-1;beacons.push({x:p.x+p.nx*2.6*side,y:p.y+p.ny*2.6*side,alive:true})});
+    [LG[2]+4,LG[2]+10].forEach((s,i)=>{const p=at(GAL,LG,s);const side=i%2?1:-1;beacons.push({x:p.x+p.nx*2.2*side,y:p.y+p.ny*2.2*side,alive:true})});
+    const workers=[];for(let i=0;i<14;i++){const gal=i%5===4;const L=gal?LG:LM;const s=8+Math.random()*(L[L.length-1]-10);workers.push({id:'W-'+String(i+1).padStart(2,'0'),gal,s,ts:s,out:false,ex:0,ey:0,sd:1})}
+    S={t:0,beacons,workers,evac:false,evT:0,done:null};
+  }
+  init();
+  function step(dt){
+    S.t+=dt;if(S.evac&&S.done==null)S.evT+=dt;
+    S.workers.forEach(w=>{if(w.out)return;const L=w.gal?LG:LM;const P=w.gal?GAL:MAIN;
+      if(S.evac){w.ts=0}else if(Math.abs(w.ts-w.s)<0.3){w.ts=clamp(w.s+(Math.random()-0.5)*16,6,L[L.length-1]-1)}
+      const sp=S.evac?1.8:0.6;w.s+=clamp(w.ts-w.s,-sp*dt,sp*dt);
+      if(S.evac&&w.s<1.2){w.out=true;return}
+      const p=at(P,L,w.s);w.x=p.x;w.y=p.y;
+      const near=S.beacons.filter(b=>b.alive&&hyp(b.x-p.x,b.y-p.y)<16).length;
+      const sd=near>=3?0.8:near===2?1.6:near===1?3.2:5;w.sd+=(sd-w.sd)*Math.min(1,dt*2);w.near=near;
+      if(!w.init){w.ex=p.x;w.ey=p.y;w.init=1}
+      w.ex+=((p.x+rnd()*w.sd*0.4)-w.ex)*Math.min(1,dt*3);w.ey+=((p.y+rnd()*w.sd*0.4)-w.ey)*Math.min(1,dt*3);
+    });
+    const inside=S.workers.filter(w=>!w.out);
+    if(S.evac&&!inside.length&&S.done==null)S.done=S.evT;
+    $('uIn').textContent=inside.length;$('uOut').textContent=S.workers.length-inside.length;
+    $('uB').textContent=S.beacons.filter(b=>b.alive).length+' / '+S.beacons.length;
+    $('uT').textContent=S.evac?(S.done!=null?S.done.toFixed(0)+' s ✓':S.evT.toFixed(0)+' s'):'–';
+    const z={};['Portal','Zone A','Zone B','Face','Side gallery'].forEach(k=>z[k]=[]);inside.forEach(w=>z[zoneOf(w)].push(w));
+    $('uZones').innerHTML=Object.keys(z).map(k=>'<div><b>'+k.padEnd(13,' ')+'</b> '+z[k].length+'  <span style="color:var(--faint)">'+z[k].map(w=>w.id+(w.near<2?'?':'')).join(' ')+'</span></div>').join('')+'<div style="margin-top:6px;color:var(--faint)">? = fewer than 2 beacons nearby, wider ellipse</div>';
+  }
+  function draw(){
+    st.clear();const g=st.ctx;
+    g.lineCap='round';g.lineJoin='round';
+    [MAIN,GAL].forEach(p=>{g.strokeStyle='#D2EEF6';g.lineWidth=7.5*st.s;g.beginPath();p.forEach((q,i)=>i?g.lineTo(st.X(q[0]),st.Y(q[1])):g.moveTo(st.X(q[0]),st.Y(q[1])));g.stroke()});
+    ZONES.forEach(z=>{if(z[1]>0){const p=at(MAIN,LM,z[1]);g.strokeStyle='rgba(63,101,114,.3)';g.lineWidth=1;g.beginPath();g.moveTo(st.X(p.x+p.nx*4),st.Y(p.y+p.ny*4));g.lineTo(st.X(p.x-p.nx*4),st.Y(p.y-p.ny*4));g.stroke()}
+      const m=at(MAIN,LM,Math.min((z[1]+z[2])/2,LM[4]-3));st.label(z[0],m.x-m.nx*5.5,m.y-m.ny*5.5,COL.faint,12,'center')});
+    const gp=at(GAL,LG,LG[3]-2);st.label('Side gallery',gp.x+3,gp.y,COL.faint,12);
+    g.fillStyle=COL.panel2;g.fillRect(st.X(0.5),st.Y(22),st.X(3),st.Y(6));st.label('PORTAL',2,29.3,COL.muted,11,'center');
+    S.beacons.forEach(b=>{st.dot(b.x,b.y,7,b.alive?COL.teal:COL.panel,b.alive?null:COL.bad);if(!b.alive){const x=st.X(b.x),y=st.Y(b.y);g.strokeStyle=COL.bad;g.lineWidth=2;g.beginPath();g.moveTo(x-4,y-4);g.lineTo(x+4,y+4);g.moveTo(x+4,y-4);g.lineTo(x-4,y+4);g.stroke()}});
+    S.workers.forEach(w=>{if(w.out||w.x==null)return;const v=w.sd*w.sd;st.ellipse(w.ex,w.ey,[v,0,0,v],w.near<2?COL.bad:COL.signal,1.4);st.dot(w.ex,w.ey,4,COL.signal)});
+  }
+  $('cv-under').addEventListener('pointerdown',e=>{const p=st.world(e);const b=S.beacons.find(b=>hyp(b.x-p.x,b.y-p.y)<2.5);if(b)b.alive=!b.alive});
+  $('evac').onclick=()=>{S.evac=true;S.evT=0;S.done=null};
+  $('uReset').onclick=init;
+  sims.under={stage:st,chapter:4,step,draw};
+})();
+
+/* ---------- 4 flip ---------- */
+(function(){
+  const W=40,H=28;const st=new Stage($('cv-flip'),W,H);
+  const RUB=[[9,7],[22,5],[32,9],[33,21],[23,25],[10,23],[7,15]];
+  const SIG=2.5;let S;
+  function init(){S={vic:{x:21.5,y:15},R:[{n:'R1',x:5,y:3.5},{n:'R2',x:9,y:2.5},{n:'R3',x:13,y:3}],J:[1/400,0,0,1/400],N:0,samples:[],z:[clamp(rnd(),-1.2,1.2),clamp(rnd(),-1.2,1.2)],walk:false,ang:[3.9,4.3,4.7],reveal:false,drag:null};S.R.forEach(r=>{r.lx=-99;r.ly=-99;sample(r)});sync()}
+  function sample(r){if(hyp(r.x-r.lx,r.y-r.ly)<1)return;r.lx=r.x;r.ly=r.y;const dx=S.vic.x-r.x,dy=S.vic.y-r.y,d=hyp(dx,dy);const ux=dx/d,uy=dy/d;S.J[0]+=ux*ux/(SIG*SIG);S.J[1]+=ux*uy/(SIG*SIG);S.J[3]+=uy*uy/(SIG*SIG);S.N++;S.samples.push([r.x,r.y])}
+  function cov(){const a=S.J[0],b=S.J[1],c=S.J[3],det=a*c-b*b;return[c/det,-b/det,-b/det,a/det]}
+  function est(P){const l11=Math.sqrt(P[0]),l21=P[1]/l11,l22=Math.sqrt(Math.max(1e-9,P[3]-l21*l21));return{x:S.vic.x+l11*S.z[0],y:S.vic.y+l21*S.z[0]+l22*S.z[1]}}
+  function sync(){$('fWalk').textContent=S.walk?'Stop walking':'Walk around';$('fReveal').classList.toggle('on',S.reveal)}
+  init();
+  function inside(x,y){let c=false;for(let i=0,j=RUB.length-1;i<RUB.length;j=i++){const a=RUB[i],b=RUB[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+  function step(dt){
+    if(S.walk)S.R.forEach((r,i)=>{S.ang[i]+=dt*(0.22+0.05*i);const tx=20.5+15*Math.cos(S.ang[i]),ty=15+11.5*Math.sin(S.ang[i]);r.x+=(tx-r.x)*Math.min(1,dt*2);r.y+=(ty-r.y)*Math.min(1,dt*2)});
+    S.R.forEach(sample);
+  }
+  function draw(){
+    st.clear();const g=st.ctx;
+    g.beginPath();RUB.forEach((p,i)=>i?g.lineTo(st.X(p[0]),st.Y(p[1])):g.moveTo(st.X(p[0]),st.Y(p[1])));g.closePath();g.fillStyle='#E7EBEF';g.fill();g.strokeStyle='#B9C3CC';g.lineWidth=2;g.stroke();
+    [[[12,9],[18,8],[19,13],[13,14]],[[22,8],[29,11],[27,15],[23,13]],[[11,17],[17,17],[18,21],[12,21]],[[23,18],[30,18],[29,22],[24,22]]].forEach(q=>{g.beginPath();q.forEach((p,i)=>i?g.lineTo(st.X(p[0]),st.Y(p[1])):g.moveTo(st.X(p[0]),st.Y(p[1])));g.closePath();g.fillStyle='#D3D9E0';g.fill()});
+    st.label('collapsed building',20.5,26.8,COL.faint,12,'center');
+    S.samples.forEach(p=>st.dot(p[0],p[1],2,'rgba(76,201,176,.45)'));
+    const P=cov();const E=est(P);
+    S.R.forEach(r=>{g.setLineDash([4,5]);g.strokeStyle='rgba(76,201,176,.5)';g.lineWidth=1.2;g.beginPath();g.moveTo(st.X(r.x),st.Y(r.y));g.lineTo(st.X(E.x),st.Y(E.y));g.stroke();g.setLineDash([])});
+    const el=st.ellipse(E.x,E.y,P,COL.signal);st.dot(E.x,E.y,5,COL.signal);
+    st.label('dig here',E.x+1,E.y-1,COL.signal,13);
+    if(S.reveal){st.dot(S.vic.x,S.vic.y,6,COL.fg);st.label('victim',S.vic.x+0.8,S.vic.y+1.4,COL.fg,12)}
+    S.R.forEach(r=>{st.dot(r.x,r.y,11,COL.teal);st.label(r.n,r.x,r.y+0.35,'#FFFFFF',11,'center')});
+    $('fA').textContent=el.area.toFixed(el.area<10?1:0)+' m²';$('fL').textContent=el.major.toFixed(1)+' m';$('fN').textContent=S.N;$('fE').textContent=hyp(E.x-S.vic.x,E.y-S.vic.y).toFixed(1)+' m';
+  }
+  const cv=$('cv-flip');
+  cv.addEventListener('pointerdown',e=>{const p=st.world(e);const r=S.R.find(r=>hyp(r.x-p.x,r.y-p.y)<2.2);if(r){S.drag=r;S.walk=false;sync();cv.setPointerCapture(e.pointerId)}});
+  cv.addEventListener('pointermove',e=>{if(!S.drag)return;const p=st.world(e);let x=clamp(p.x,0.8,W-0.8),y=clamp(p.y,0.8,H-0.8);if(inside(x,y))return;S.drag.x=x;S.drag.y=y});
+  cv.addEventListener('pointerup',()=>{S.drag=null});
+  $('fWalk').onclick=()=>{S.walk=!S.walk;if(S.walk)S.R.forEach((r,i)=>{S.ang[i]=Math.atan2((r.y-15)/11.5,(r.x-20.5)/15)});sync()};
+  $('fReveal').onclick=()=>{S.reveal=!S.reveal;sync()};
+  $('fReset').onclick=init;
+  sims.flip={stage:st,chapter:5,step,draw};
+})();
+
+/* ---------- 5 crowd ---------- */
+(function(){
+  const W=70,H=44;const st=new Stage($('cv-crowd'),W,H);
+  const POLES=[[4,4],[35,3],[66,4],[4,22],[66,22],[4,40],[35,41],[66,40],[22,15],[48,15],[22,30],[48,30]];
+  const ZONES=[['Gate 1',0,0,23,22],['Food court',23,0,47,22],['Ghat 2',47,0,70,22],['Parking',0,22,23,44],['Main stage',23,22,47,44],['Gate 2',47,22,70,44]];
+  function zone(x,y){return(ZONES.find(z=>x>=z[1]&&x<z[3]&&y>=z[2]&&y<z[4])||ZONES[0])[1]?(ZONES.find(z=>x>=z[1]&&x<z[3]&&y>=z[2]&&y<z[4])||ZONES[0])[0]:(ZONES.find(z=>x>=z[1]&&x<z[3]&&y>=z[2]&&y<z[4])||ZONES[0])[0]}
+  let S;
+  function wp(o){o.tx=6+Math.random()*58;o.ty=6+Math.random()*32}
+  function init(){
+    const crowd=[];for(let i=0;i<280;i++)crowd.push({x:Math.random()*W,y:Math.random()*H,vx:0,vy:0});
+    const vols=[];for(let i=0;i<6;i++){const v={x:8+Math.random()*54,y:6+Math.random()*32};wp(v);vols.push(v)}
+    const parent={x:30,y:30};wp(parent);
+    S={t:0,crowd,vols,parent,child:{x:31,y:30.5,ex:31,ey:30.5,sd:1},holding:true,trail:[],far:0,alerted:false,lost:false,lostT:0,found:null,helper:null,acc:0};
+    setFlag('ok','Status','Band B-31 is with the parent.');
+  }
+  function setFlag(cls,tag,msg){const f=$('crowdFlag');f.className='flag '+cls;f.innerHTML='<span class="tag">'+tag+'</span><span>'+msg+'</span>'}
+  function mv(o,sp,dt){const dx=o.tx-o.x,dy=o.ty-o.y,d=hyp(dx,dy);if(d<0.6){wp(o);return}o.x+=dx/d*sp*dt;o.y+=dy/d*sp*dt}
+  init();
+  function step(dt){
+    S.t+=dt;
+    S.crowd.forEach(c=>{c.vx+=rnd()*dt*1.2;c.vy+=rnd()*dt*1.2;c.vx*=0.97;c.vy*=0.97;c.x=(c.x+c.vx*dt+W)%W;c.y=(c.y+c.vy*dt+H)%H});
+    S.vols.forEach((v,i)=>{if(v===S.helper&&S.found==null){v.tx=S.child.ex;v.ty=S.child.ey;mv(v,1.7,dt)}else if(v!==S.helper)mv(v,0.5,dt)});
+    mv(S.parent,0.9,dt);
+    const ch=S.child;
+    if(S.holding){ch.x=S.parent.x+0.9;ch.y=S.parent.y+0.5}else if(S.found==null){if(ch.tx==null)wp(ch);mv(ch,0.75,dt)}
+    else{ch.x+=(S.helper.x+0.8-ch.x)*dt;ch.y+=(S.helper.y-ch.y)*dt}
+    S.acc+=dt;
+    if(S.acc>0.2){S.acc=0;
+      const anchors=POLES.filter(p=>hyp(p[0]-ch.x,p[1]-ch.y)<16).length+S.vols.filter(v=>hyp(v.x-ch.x,v.y-ch.y)<14).length;
+      const dense=S.crowd.filter(c=>hyp(c.x-ch.x,c.y-ch.y)<4).length;
+      const sd=(anchors>=3?1.0:anchors===2?2.0:3.6)*(1+dense*0.04);ch.sd+=(sd-ch.sd)*0.3;ch.n=anchors;
+      ch.ex+=(ch.x+rnd()*ch.sd*0.5-ch.ex)*0.5;ch.ey+=(ch.y+rnd()*ch.sd*0.5-ch.ey)*0.5;
+      S.trail.push([ch.ex,ch.ey]);if(S.trail.length>120)S.trail.shift();
+    }
+    const d=hyp(ch.ex-S.parent.x,ch.ey-S.parent.y);
+    S.far=d>10?S.far+dt:0;
+    if(S.far>2&&!S.alerted&&!S.lost&&!S.holding){S.alerted=true;S.alertT=S.t;setFlag('alert','Early alert','Band B-31 is '+d.toFixed(0)+' m from the parent’s phone, in '+zone(ch.ex,ch.ey)+'. Parent and nearest volunteer notified.')}
+    if(S.lost&&S.found==null){if(hyp(S.helper.x-ch.x,S.helper.y-ch.y)<2){S.found=S.t-S.lostT;setFlag('ok','Found','Volunteer reached the child in '+S.found.toFixed(0)+' s, in '+zone(ch.x,ch.y)+'.')}}
+    $('cD').textContent=d.toFixed(0)+' m';$('cZ').textContent=zone(ch.ex,ch.ey);$('cN').textContent=ch.n==null?'–':ch.n;
+    $('cT').textContent=S.lost?(S.found!=null?S.found.toFixed(0)+' s ✓':(S.t-S.lostT).toFixed(0)+' s'):'–';
+  }
+  function draw(){
+    st.clear();const g=st.ctx;
+    ZONES.forEach(z=>{g.strokeStyle='rgba(122,154,166,.45)';g.lineWidth=1;g.strokeRect(st.X(z[1]),st.Y(z[2]),st.X(z[3]-z[1]),st.Y(z[4]-z[2]));st.label(z[0],z[1]+1,z[2]+2,COL.faint,12)});
+    g.fillStyle='rgba(63,101,114,.28)';S.crowd.forEach(c=>{g.fillRect(st.X(c.x)-1.5,st.Y(c.y)-1.5,3,3)});
+    POLES.forEach(p=>{g.fillStyle=COL.teal;g.fillRect(st.X(p[0])-4,st.Y(p[1])-4,8,8)});
+    if(!S.holding){g.strokeStyle=COL.signal;g.globalAlpha=.6;g.lineWidth=1.5;g.setLineDash([2,4]);g.beginPath();S.trail.forEach((p,i)=>i?g.lineTo(st.X(p[0]),st.Y(p[1])):g.moveTo(st.X(p[0]),st.Y(p[1])));g.stroke();g.setLineDash([]);g.globalAlpha=1}
+    if(S.helper&&S.found==null){g.strokeStyle=COL.teal;g.lineWidth=2;g.beginPath();g.moveTo(st.X(S.helper.x),st.Y(S.helper.y));g.lineTo(st.X(S.child.ex),st.Y(S.child.ey));g.stroke()}
+    S.vols.forEach(v=>{st.dot(v.x,v.y,6,COL.teal);if(v===S.helper)st.dot(v.x,v.y,10,null,COL.teal)});
+    st.dot(S.parent.x,S.parent.y,7,COL.blue);st.label('parent',S.parent.x+1.2,S.parent.y-1,COL.blue,12);
+    const v=S.child.sd*S.child.sd;st.ellipse(S.child.ex,S.child.ey,[v,0,0,v],COL.signal);st.dot(S.child.ex,S.child.ey,6,COL.signal);
+    st.label('B-31',S.child.ex+1.2,S.child.ey+2,COL.signal,12);
+  }
+  $('letgo').onclick=()=>{if(!S.holding)return;S.holding=false;S.child.tx=S.child.x>35?4+Math.random()*10:56+Math.random()*10;S.child.ty=6+Math.random()*32;setFlag('ok','Status','Band B-31 moving on its own. Watching distance to parent.')};
+  $('lost').onclick=()=>{if(S.lost)return;if(S.holding)$('letgo').onclick();S.lost=true;S.lostT=S.t;
+    let best=null,bd=1e9;S.vols.forEach(v=>{const d=hyp(v.x-S.child.ex,v.y-S.child.ey);if(d<bd){bd=d;best=v}});S.helper=best;
+    setFlag('alert','Lost report','Last zone '+zone(S.child.ex,S.child.ey)+'. Trail on volunteer phones. Nearest volunteer is '+bd.toFixed(0)+' m away and guided there.')};
+  $('cReset').onclick=init;
+  sims.crowd={stage:st,chapter:6,step,draw};
+})();
+
+/* ---------- how LOCUS works: one reading through the pipeline ---------- */
+(function(){
+  const H={d:1,p1:-70,cal:true,fade:false,sel:2};
+  const fmt=m=>m<1?Math.round(m*100)+' cm':m.toFixed(m<10?2:1)+' m';
+  function calc(){
+    const n=2.2,rssi=Math.round(H.p1-10*n*Math.log10(H.d)-(H.fade?9:0));
+    const p1=H.cal?H.p1:-59,r=Math.max(0.05,Math.pow(10,(p1-rssi)/(10*n)));
+    const err=Math.abs(r-H.d),rel=err/Math.max(0.3,H.d);
+    const rules=Math.max(0.02,1/(1+Math.pow(rel/0.45,3))),ml=Math.max(0.02,Math.min(0.98,1/(1+Math.exp(6*(rel-0.5)))));
+    const fused=Math.min(rules,ml)<0.25?Math.min(rules,ml):(rules+ml)/2;
+    const w=fused*fused,ell=Math.max(0.35,0.6+2.2*(1-fused)),conf=Math.round(100*Math.max(0.35,Math.min(0.97,1-ell/6)));
+    return {rssi,p1,r,err,rules,ml,fused,w,ell,conf};
+  }
+  const STEPS=[
+    ['Beacon','Advertise',c=>'packet L·C·id·height',c=>'<h3>1 · The beacon advertises</h3><p>A phone in Beacon mode sends a tiny Bluetooth packet about 10 times a second: manufacturer data 0xFFFF with the letters L and C, its number, and its height in decimetres. It never connects to anything and needs no internet.</p><div class="formula">bytes = [ "L", "C", id, height_dm ]\nexample: [ 76, 67, 3, 24 ] → beacon 3 at 2.4 m</div>'],
+    ['Receiver','Hear the signal',c=>c.rssi+' dBm',c=>'<h3>2 · The receiver hears a signal strength</h3><p>The receiver phone measures how strong each packet arrived (RSSI, in dBm). It falls with distance, but phones differ a lot: this one really reads <b>'+H.p1+' dBm</b> at 1 m. A body in the way costs about 9 dB more.</p><div class="formula">RSSI = RSSI@1m − 10 · n · log10(d)'+(H.fade?' − 9 (body)':'')+'\n     = '+H.p1+' − 22 · log10('+H.d.toFixed(2)+')'+(H.fade?' − 9':'')+' = '+c.rssi+' dBm</div>'],
+    ['Radio','Distance',c=>fmt(c.r),c=>'<h3>3 · Signal → distance</h3><p>'+(H.cal?'The beacon was <b>calibrated</b>: the receiver was held at a known distance for 3 s, so LOCUS knows this phone reads '+H.p1+' dBm at 1 m.':'<b>Not calibrated</b>: LOCUS assumes the textbook −59 dBm at 1 m. With a weak phone that turns a few centimetres into metres, the bug you saw (13 cm shown as 3.2 m).')+'</p><div class="formula">d = 10 ^ ((RSSI@1m − RSSI) / (10 · n))\n  = 10 ^ (('+c.p1+' − ('+c.rssi+')) / 22) = '+fmt(c.r)+'\ntrue '+fmt(H.d)+' → off by '+fmt(c.err)+'</div><a class="try" href="dashboard.html#panel">Calibrate in the dashboard</a>'],
+    ['Trust','Rules + ML',c=>c.fused.toFixed(2),c=>'<h3>4 · How far to trust this reading</h3><p>Two scorers look at every reading. The <b>rules</b> compare it with where the motion model expects the person, and check for jumps and noise. The <b>ML</b> (LightGBM, 14 features) gives the chance the reading is clean. They agree → average. Either one sure it is bad → that one wins.</p><div class="formula">rules '+c.rules.toFixed(2)+' · ML '+c.ml.toFixed(2)+'\ntrust = '+(Math.min(c.rules,c.ml)<0.25?'min (veto)':'average')+' = '+c.fused.toFixed(2)+'</div><a class="try" href="dashboard.html#trust">See live trust cards</a>'],
+    ['Engine','Position',c=>'± '+c.ell.toFixed(1)+' m',c=>'<h3>5 · Position with an honest ellipse</h3><p>400 particles (guesses) move like a walking person and are reweighted by every beacon, each counted with weight trust². A doubtful beacon barely moves the dot; the 90% ellipse grows instead of the dot lying.</p><div class="formula">weight = trust² = '+c.w.toFixed(2)+'\n90% ellipse half-axis ≈ '+c.ell.toFixed(1)+' m</div>'],
+    ['Answer','Zone, through 3 gates',c=>'Ward B · '+c.conf+'%',c=>'<h3>6 · The answer: a zone, never coordinates</h3><p>The share of particles in each room gives the confidence. A person\'s location is only released after the three gates: role, a registered phone inside the hospital, and point of contact. ISHA uses the same answer for staff.</p><div class="formula">P(Ward B) = '+c.conf+'%\nrole ✓ → registered + inside ✓ → POC ✓ → "Ward B · '+c.conf+'%"</div><a class="try" href="dashboard.html#access">Try the gates live</a>'],
+  ];
+  function paint(){
+    const c=calc();
+    $('hD').textContent=fmt(H.d);$('hP').textContent=H.p1+' dBm';$('hCal').classList.toggle('on',H.cal);$('hFade').classList.toggle('on',H.fade);
+    $('flow').innerHTML=STEPS.map((s,i)=>'<button class="step'+(i===H.sel?' on':'')+'" data-i="'+i+'"><small>'+(i+1)+' · '+s[0]+'</small><b>'+s[1]+'</b><span class="v">'+s[2](c)+'</span></button>').join('');
+    $('hDet').innerHTML='<div>'+STEPS[H.sel][3](c)+'</div><div class="formula" style="align-self:start">reading now\ntrue distance   '+fmt(H.d)+'\nRSSI            '+c.rssi+' dBm\nestimated       '+fmt(c.r)+'\ntrust           '+c.fused.toFixed(2)+'\nanswer          Ward B · '+c.conf+'%</div>';
+  }
+  $('flow').onclick=e=>{const b=e.target.closest('.step');if(b){H.sel=+b.dataset.i;paint()}};
+  $('hDi').oninput=e=>{H.d=+e.target.value;paint()};$('hPi').oninput=e=>{H.p1=+e.target.value;paint()};
+  $('hCal').onclick=()=>{H.cal=!H.cal;paint()};$('hFade').onclick=()=>{H.fade=!H.fade;paint()};
+  paint();
+})();
+
+/* ---------- glossary ---------- */
+(function(){
+  const G=[
+    ['BLE beacon','Hardware','A phone (or tag) sending a small Bluetooth Low Energy packet several times a second, at a fixed, known spot.'],
+    ['Receiver','Hardware','The phone that listens to the beacons, works out where it is, and streams packets to the laptop with a 6-digit code.'],
+    ['RSSI','Radio','Received signal strength in dBm. Closer is stronger (less negative), but walls, bodies and phone models change it.'],
+    ['RSSI at 1 m (p1)','Radio','What a given phone reads 1 m from a beacon. Phones differ by 10 dB or more, which is why we calibrate.'],
+    ['Path-loss exponent n','Radio','How fast the signal fades with distance: about 2 in open air, 2.5 to 4 indoors. Two calibration distances fit it.'],
+    ['Calibration','Radio','Hold the receiver at 10 cm, 50 cm, 1 m or 2 m from a beacon for 3 s. Fixes that beacon’s distances.'],
+    ['Trilateration','Engine','Finding a position from distances to three or more known points. Plain trilateration trusts every reading equally.'],
+    ['Particle filter','Engine','Hundreds of guesses of where the person is, moved like a walker and reweighted by each reading. Their spread is the uncertainty.'],
+    ['Trust score','Engine','0 to 1 for every reading. The fix weights each beacon by trust², so a bad beacon is out-voted.'],
+    ['Rules scorer','Engine','Hand-written checks: residual against the motion model, sudden jumps, variance spikes. Gives the reason you see on each card.'],
+    ['ML scorer','Engine','LightGBM model over 14 features of each reading, trained on simulated hospital data. AUC 0.83 vs 0.71 for rules.'],
+    ['Rules + ML','Engine','Both vote: average when they agree; either one below 0.25 vetoes the reading.'],
+    ['90% ellipse','Engine','The area the person is in with 90% probability. It grows when beacons die or disagree, instead of the dot pretending to be exact.'],
+    ['Off radar','Safety','A tag silent to every beacon for 3 s: its point of contact gets a flag with the last zone, time and trail.'],
+    ['Self-check','Safety','Beacons hear each other. One silent to all the others for 3 s is reported for repair while tracking continues.'],
+    ['Three gates','Access','Role → registered phone that LOCUS places inside → point of contact. Only then is a room shared.'],
+    ['POC','Access','Point of contact: the one person (nurse, parent) allowed to see a patient’s exact room.'],
+    ['Audit log','Access','Every location request, allowed or denied. Two denials in a row from the same person are flagged to admin.'],
+    ['Moving beacon','Engine','A beacon that is carried. LOCUS uses its newest reported position and how unsure that position is.'],
+    ['Height (z)','Engine','Each beacon’s height above the floor, sent in its packet. With 4+ beacons at different heights LOCUS also estimates yours.'],
+    ['ISHA','App','The staff advisor in the phone app. Voice or chat, English or Hinglish, works offline. Finds equipment, people (through the gates), alerts.'],
+    ['Pair code','App','6 digits on the receiver phone. Typed on any laptop, it opens that phone’s live dashboard over the internet.'],
+    ['NLOS','Radio','Non line of sight: a wall or body between beacon and phone. Signals read weaker, so distances read too long.'],
+    ['Zone','Access','A named area (ward, corridor, gate). Answers are zones with a confidence, never raw coordinates.'],
+  ];
+  function paint(){const q=$('gq').value.trim().toLowerCase();$('gl').innerHTML=G.filter(g=>!q||(g[0]+' '+g[1]+' '+g[2]).toLowerCase().includes(q)).map(g=>'<div class="term"><em>'+g[1]+'</em><b>'+g[0]+'</b><span>'+g[2]+'</span></div>').join('')||'<p class="small">Nothing matches. Try "trust" or "RSSI".</p>'}
+  $('gq').oninput=paint;paint();
+})();
+
+/* ---------- loop ---------- */
+let last=performance.now(),lastTick=0;const errBox=$('err');
+function tick(){
+  const now=performance.now();const dt=Math.min(0.05,Math.max(0,(now-last)/1000));last=now;lastTick=now;
+  Object.values(sims).forEach(m=>{if(m.chapter!==cur)return;try{if(!m.stage.cw||!m.stage.c.width||Math.abs(m.stage.c.getBoundingClientRect().width-m.stage.cw)>1)m.stage.resize();m.step(dt);m.draw()}catch(e){errBox.hidden=false;errBox.textContent='Demo error: '+e.message}});
+}
+function loop(){tick();requestAnimationFrame(loop)}
+setInterval(()=>{if(performance.now()-lastTick>100)tick()},33);
+const startId=(location.hash||'').slice(1);
+const si=sections.findIndex(s=>s.id==='c-'+startId);
+go(si>=0?si:0,true);
+requestAnimationFrame(loop);
+})();
+</script>
+
+
+</body>
+</html>
