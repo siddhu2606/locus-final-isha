@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LOCUS · Moving Beacons</title>
+<meta name="theme-color" content="#22C3E6">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --aqua:#22C3E6; --aqua-d:#0E9DBE; --aqua-l:#BFE9F3; --aqua-xl:#E6F8FC;
+  --em:#10B981; --em-d:#0B8A5E; --em-dd:#0A6B49; --em-l:#DDF6EA;
+  --ink:#0B3A4A; --ink2:#3F6572; --ink3:#7A9AA6; --bg:#F4FCFE; --card:#FFFFFF; --line:#CDEBF3;
+  --amber:#F5A524; --amber-l:#FFF1D6; --coral:#EF6A6A; --coral-l:#FFE3E3; --violet:#8B5CF6;
+  --grad:linear-gradient(135deg,#22C3E6 0%,#10B981 100%); --shadow:0 10px 28px rgba(34,195,230,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Figtree',system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden;
+  background-image:radial-gradient(900px 400px at 85% -100px,rgba(34,195,230,.18),transparent 70%),radial-gradient(700px 380px at 0% 0%,rgba(16,185,129,.12),transparent 70%);background-repeat:no-repeat}
+h1,h2,h3{font-family:'Sora',sans-serif}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
+header{position:sticky;top:0;z-index:50;background:rgba(244,252,254,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;max-width:1500px;margin:0 auto;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Sora';font-weight:700;letter-spacing:.12em}
+.logo small{font-weight:600;letter-spacing:.04em;color:var(--em-dd);background:var(--em-l);padding:3px 9px;border-radius:99px;font-size:12px}
+.hl{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink2);text-decoration:none;white-space:nowrap}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--ink3);display:inline-block}.pill.ok i{background:var(--em);box-shadow:0 0 0 3px rgba(16,185,129,.2)}.pill.warn i{background:var(--amber)}
+a.pill:hover{border-color:var(--em);color:var(--em-dd)}
+.layout{display:grid;gap:14px;padding:14px 16px 28px;max-width:1500px;margin:0 auto;grid-template-columns:1fr}
+@media(min-width:1050px){.layout{grid-template-columns:minmax(0,1fr) 430px;align-items:start}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{font-size:16px}.card h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.note{font-size:12.5px;line-height:1.45;color:var(--ink2)}.note b{color:var(--ink)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{height:34px;padding:0 13px;border-radius:99px;border:1.5px solid var(--aqua-l);background:#fff;font-weight:700;font-size:13px;color:var(--ink)}
+.btn:hover{border-color:var(--em)}.btn.pri{background:var(--grad);border:0;color:#fff;box-shadow:0 6px 16px rgba(16,185,129,.28)}.btn:disabled{opacity:.45;cursor:default}
+.btn[aria-pressed=true]{background:var(--coral-l);border-color:var(--coral);color:#b13a3a}
+.mapbox{position:relative;width:100%;aspect-ratio:13/9;touch-action:none}
+.mapbox canvas{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair}
+.banner{border-radius:14px;padding:10px 12px;background:var(--aqua-xl);font-size:14px;font-weight:600;min-height:44px;display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums}
+.banner .sq{width:12px;height:12px;border-radius:4px;flex:none}.banner.live{background:var(--em-l);color:var(--em-dd)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.kpis>div{background:var(--aqua-xl);border-radius:14px;padding:8px 10px;min-width:0}.kpis small{display:block;font-size:11px;font-weight:700;color:var(--ink3)}.kpis b{font:700 18px Sora;font-variant-numeric:tabular-nums}.kpis span{display:block;font-size:11px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;font-weight:600;color:var(--ink2)}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--ink2);flex:1 1 170px;min-width:0}.fld span.v{float:right;color:var(--ink)}.fld input{width:100%;accent-color:var(--em)}
+.bl{display:flex;flex-direction:column;gap:8px}
+.bc{border:1.5px solid var(--line);border-radius:14px;padding:9px 10px;display:flex;flex-direction:column;gap:5px}.bc.dead{border-color:var(--coral);background:#FFF8F8}.bc.mv{border-color:var(--em)}
+.bc .top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.bc .sq{width:12px;height:12px;border-radius:4px}.bc .top b{font:700 14px Sora}
+.mini{display:flex;border:1px solid var(--line);border-radius:99px;padding:2px;gap:2px}.mini button{height:24px;padding:0 9px;border-radius:99px;font-size:11.5px;font-weight:700;color:var(--ink2)}.mini button[aria-pressed=true]{background:var(--grad);color:#fff}
+.bc .acts{margin-left:auto;display:flex;gap:4px}.bc .acts button{height:26px;padding:0 9px;border-radius:99px;border:1.5px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink2);background:#fff}.bc .acts button[aria-pressed=true]{background:var(--coral-l);border-color:var(--coral);color:#b13a3a}
+.bc .g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 8px;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}.bc .g b{display:block;color:var(--ink);font-size:13px}
+.bc .lm{font-size:12px;color:var(--ink2);min-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log{max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:12px}
+.log table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}.log th{position:sticky;top:0;background:var(--aqua-xl);text-align:left;font-size:11px;color:var(--ink3);padding:6px 8px}.log td{padding:5px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.log tr.live td{background:var(--em-l)}.log .sq{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.cmp table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}.cmp th{text-align:left;font-size:11px;color:var(--ink3);padding:5px 6px;border-bottom:1px solid var(--line)}.cmp td{padding:6px;border-bottom:1px solid var(--line)}.cmp td.good{color:var(--em-dd);font-weight:700}.cmp td.bad{color:#b13a3a;font-weight:700}
+.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;width:0;background:var(--grad)}
+</style>
+</head>
+<body>
+<header><div class="hrow">
+  <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C3E6"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><path d="M16 2c-5.5 0-10 4.4-10 9.8C6 19 16 30 16 30s10-11 10-18.2C26 6.4 21.500 2 16 2z" fill="url(#lg)"/><circle cx="16" cy="12" r="4" fill="#fff"/></svg>LOCUS <small>Moving beacons</small></div>
+  <div class="hl"><span class="pill ok" id="p-run"><i></i><span>Running · 0 s</span></span><a class="pill" href="dashboard.html">Dashboard</a><a class="pill" href="./">Home</a></div>
+</div></header>
+
+<div class="layout">
+  <div class="col">
+    <section class="card" aria-label="Floor map">
+      <div class="banner" id="banner"><span class="sq"></span><span id="banner-t">No beacon has moved yet. Drag one, or switch it to Moving.</span></div>
+      <div class="mapbox" id="mapbox"><canvas id="map" aria-label="Floor map: beacons, their moves, the tracked object and the estimate. Drag a beacon to move it."></canvas></div>
+      <div class="legend"><span><i style="background:#0B3A4A"></i>Object (true)</span><span><i style="background:#10B981"></i>Estimate + 90% ellipse</span><span><i style="background:#fff;border:2px dashed #7A9AA6"></i>Beacon true position</span><span><i style="background:#2A78D6"></i>Beacon (believed) + trail + last move arrow</span></div>
+      <div class="kpis">
+        <div><small>Live error</small><b id="k-err">–</b><span id="k-err2">–</span></div>
+        <div><small>Mean error (30 s)</small><b id="k-mean">–</b><span id="k-worst">–</span></div>
+        <div><small>Readings in window</small><b id="k-win">–</b><span id="k-win2">–</span></div>
+        <div><small>Beacons usable</small><b id="k-use">–</b><span id="k-use2">–</span></div>
+        <div><small>Uncertainty (90%)</small><b id="k-ell">–</b><span>long half-axis</span></div>
+      </div>
+    </section>
+    <section class="card" aria-label="Movement log">
+      <div class="row"><h2>Movement log</h2><span class="note" id="n-log">One line per move. Moves smaller than the threshold are ignored.</span><button class="btn" id="b-clearlog" style="margin-left:auto">Clear</button></div>
+      <div class="log"><table><thead><tr><th>Time</th><th>Beacon</th><th>Distance</th><th>Direction</th><th>dx, dy</th></tr></thead><tbody id="log"></tbody></table></div>
+    </section>
+  </div>
+
+  <aside class="col">
+    <section class="card" aria-label="Simulation controls">
+      <div class="row"><button class="btn pri" id="b-pause">Pause</button><button class="btn" id="b-reset">Reset</button><button class="btn" id="b-add">Add beacon</button><button class="btn" id="b-allmv">All moving</button><button class="btn" id="b-allfx">All fixed</button></div>
+      <div class="row">
+        <label class="fld">Range noise σ <span class="v" id="v-sigma"></span><input type="range" id="i-sigma" min="0" max="1.5" step="0.05" data-k="radio.sigma" data-u=" m"></label>
+        <label class="fld">Multipath bias <span class="v" id="v-shadow"></span><input type="range" id="i-shadow" min="0" max="2" step="0.1" data-k="radio.shadowSd" data-u=" m"></label>
+        <label class="fld">Packet loss <span class="v" id="v-loss"></span><input type="range" id="i-loss" min="0" max="0.6" step="0.05" data-k="radio.loss" data-u="%"></label>
+        <label class="fld">Beacon position noise <span class="v" id="v-pn"></span><input type="range" id="i-pn" min="0" max="0.5" step="0.01" data-k="report.noise" data-u=" m"></label>
+        <label class="fld">Beacon position drift <span class="v" id="v-dr"></span><input type="range" id="i-dr" min="0" max="0.1" step="0.005" data-k="report.driftRate" data-u=" m/√s"></label>
+        <label class="fld">Beacon walking speed <span class="v" id="v-sp"></span><input type="range" id="i-sp" min="0.1" max="1.5" step="0.05" data-k="motion.speed" data-u=" m/s"></label>
+        <label class="fld">Movement threshold <span class="v" id="v-thr"></span><input type="range" id="i-thr" min="0.02" max="1" step="0.01" data-k="display.threshold" data-u=" m"></label>
+        <label class="fld">Reading window <span class="v" id="v-win"></span><input type="range" id="i-win" min="0" max="15" step="0.5" data-k="estimator.windowSec" data-u=" s"></label>
+      </div>
+      <div class="note">All defaults live in <b>src/moving/config.js</b>. Drag a beacon on the map to move it. External position updates: <b>update_beacon_position(id, x, y, timestamp)</b> (see README).</div>
+    </section>
+    <section class="card" aria-label="Beacons">
+      <h3>Beacons</h3>
+      <div class="bl" id="bl"></div>
+    </section>
+    <section class="card cmp" aria-label="Fixed vs moving comparison">
+      <div class="row"><h2>Does moving help?</h2><button class="btn pri" id="b-cmp" style="margin-left:auto">Run comparison</button></div>
+      <div class="note">Same object path, same radio noise, same estimator for every pair; only the beacons' mode differs. <span id="n-cmpcfg"></span></div>
+      <div class="prog" id="cmp-prog" style="display:none"><i></i></div>
+      <div id="cmp-out"></div>
+    </section>
+  </aside>
+</div>
+<script>
+/* ===== LOCUS engine: simulator, baselines, trust scorer, map-aware particle filter ===== */
+const FLOOR = { w: 40, h: 24 };
+const TOP_DOORS = [5, 15, 25, 35], BOT_DOORS = [6, 17, 27, 36], DOOR_HALF = 1.2;
+/* ---- sites: hospital floor and warehouse (same 40 x 24 m footprint) ---- */
+let SITE_ID = 'hospital', ROOMS, WALLS, ANCHORS, DROP_ORDER, WAYPOINTS, FALLBACK = 'corr';
+function hospitalSite() {
+  const rooms = [
+    { id: 'wardA', name: 'Ward A', r: [0, 0, 10, 9] }, { id: 'wardB', name: 'Ward B', r: [10, 0, 20, 9] },
+    { id: 'icu', name: 'ICU', r: [20, 0, 30, 9] }, { id: 'pharm', name: 'Pharmacy', r: [30, 0, 40, 9] },
+    { id: 'corr', name: 'Corridor', r: [0, 9, 40, 15] },
+    { id: 'recep', name: 'Reception', r: [0, 15, 12, 24] }, { id: 'store', name: 'Store', r: [12, 15, 22, 24] },
+    { id: 'radio', name: 'Radiology', r: [22, 15, 32, 24] }, { id: 'ot', name: 'OT', r: [32, 15, 40, 24] },
+  ];
+  const W = [], hseg = (y, doors) => { let c = 0; doors.forEach(d => { W.push([c, y, d - DOOR_HALF, y]); c = d + DOOR_HALF; }); W.push([c, y, FLOOR.w, y]); };
+  hseg(9, TOP_DOORS); hseg(15, BOT_DOORS);
+  [10, 20, 30].forEach(x => W.push([x, 0, x, 9])); [12, 22, 32].forEach(x => W.push([x, 15, x, 24]));
+  W.push([0, 0, FLOOR.w, 0], [0, FLOOR.h, FLOOR.w, FLOOR.h], [0, 0, 0, FLOOR.h], [FLOOR.w, 0, FLOOR.w, FLOOR.h]);
+  return { rooms, walls: W, fallback: 'corr',
+    anchors: [{ id: 'A1', x: 1.5, y: 13.5 }, { id: 'A2', x: 15, y: 1.5 }, { id: 'A3', x: 25, y: 10.5 }, { id: 'A4', x: 38.5, y: 13.5 }, { id: 'A5', x: 28, y: 22.5 }, { id: 'A6', x: 7, y: 22.5 }],
+    drop: [2, 5, 1, 3, 0, 4],
+    way: [[3, 12], [15, 12], [15, 4], [15, 12], [25, 12], [25, 4], [25, 12], [36, 12], [36, 19.5], [36, 12], [27, 12], [27, 19.5], [27, 12], [6, 12], [6, 19.5], [6, 12]] };
+}
+function warehouseSite() {
+  const rooms = [{ id: 'recv', name: 'Receiving', r: [0, 0, 8, 24] }, { id: 'aisA', name: 'Aisle A', r: [8, 0, 16, 24] }, { id: 'aisB', name: 'Aisle B', r: [16, 0, 24, 24] }, { id: 'aisC', name: 'Aisle C', r: [24, 0, 32, 24] }, { id: 'disp', name: 'Dispatch', r: [32, 0, 40, 24] }];
+  const W = []; [8, 16, 24, 32].forEach(x => { W.push([x, 0, x, 10.5], [x, 13.5, x, 24]); });
+  [12, 20, 28].forEach(x => { W.push([x - 1.8, 4, x + 1.8, 4], [x - 1.8, 20, x + 1.8, 20]); }); // end-cap shelves
+  W.push([0, 0, FLOOR.w, 0], [0, FLOOR.h, FLOOR.w, FLOOR.h], [0, 0, 0, FLOOR.h], [FLOOR.w, 0, FLOOR.w, FLOOR.h]);
+  return { rooms, walls: W, fallback: 'recv',
+    anchors: [{ id: 'A1', x: 1.5, y: 21 }, { id: 'A2', x: 12, y: 1.5 }, { id: 'A3', x: 20, y: 12 }, { id: 'A4', x: 28, y: 22.5 }, { id: 'A5', x: 38.5, y: 3 }, { id: 'A6', x: 38.5, y: 21 }],
+    drop: [2, 5, 1, 3, 0, 4],
+    way: [[3, 12], [12, 12], [12, 7], [12, 17], [12, 12], [20, 12], [20, 7], [20, 17], [20, 12], [28, 12], [28, 7], [28, 17], [28, 12], [36, 12], [36, 5], [36, 19], [36, 12]] };
+}
+/* Custom rectangular room (Room Live). Optional interior partition walls [[x1,y1,x2,y2],...]; anchors [{id,x,y}] */
+function setRoom(w, h, anchors, partitions) {
+  FLOOR.w = w; FLOOR.h = h; const W = (partitions || []).map(p => p.slice());
+  W.push([0, 0, w, 0], [0, h, w, h], [0, 0, 0, h], [w, 0, w, h]);
+  SITE_ID = 'room' + w + 'x' + h + ':' + JSON.stringify(W); ROOMS = [{ id: 'room', name: 'Room', r: [0, 0, w, h] }]; WALLS = W;
+  ANCHORS = anchors.map(a => ({ id: a.id, x: a.x, y: a.y })); DROP_ORDER = ANCHORS.map((a, i) => i); WAYPOINTS = [[w / 2, h / 2], [w / 2 + 0.01, h / 2]]; FALLBACK = 'room';
+}
+function setSite(id) { FLOOR.w = 40; FLOOR.h = 24; const S = id === 'warehouse' ? warehouseSite() : hospitalSite(); SITE_ID = id; ROOMS = S.rooms; WALLS = S.walls; ANCHORS = S.anchors; DROP_ORDER = S.drop; WAYPOINTS = S.way; FALLBACK = S.fallback; }
+setSite('hospital');
+
+function roomAt(x, y) { for (const r of ROOMS) { const [a, b, c, d] = r.r; if (x >= a && x < c && y >= b && y < d) return r.id; } return FALLBACK; }
+function roomName(id) { return ROOMS.find(r => r.id === id).name; }
+function segInt(ax, ay, bx, by, cx, cy, dx, dy) {
+  const d1x = bx - ax, d1y = by - ay, d2x = dx - cx, d2y = dy - cy;
+  const den = d1x * d2y - d1y * d2x; if (Math.abs(den) < 1e-12) return false;
+  const t = ((cx - ax) * d2y - (cy - ay) * d2x) / den, u = ((cx - ax) * d1y - (cy - ay) * d1x) / den;
+  return t > 1e-6 && t < 1 - 1e-6 && u >= 0 && u <= 1;
+}
+function wallsBetween(ax, ay, bx, by) { let k = 0; for (const w of WALLS) if (segInt(ax, ay, bx, by, w[0], w[1], w[2], w[3])) k++; return k; }
+function crossesWall(ax, ay, bx, by) { for (const w of WALLS) if (segInt(ax, ay, bx, by, w[0], w[1], w[2], w[3])) return true; return false; }
+
+function rngMake(seed) { let a = seed >>> 0; const f = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; f.g = () => { let u = 0, v = 0; while (!u) u = f(); v = f(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }; return f; }
+
+/* Walker along waypoint loop */
+class Walker {
+  constructor(speed = 1.2, offset = 0) { this.i = 0; this.pos = WAYPOINTS[0].slice(); this.speed = speed; this.vel = [0, 0]; if (offset) this.advance(offset); }
+  advance(dist) { while (dist > 0) { const t = WAYPOINTS[(this.i + 1) % WAYPOINTS.length], dx = t[0] - this.pos[0], dy = t[1] - this.pos[1], d = Math.hypot(dx, dy); if (d <= dist) { this.pos = t.slice(); this.i = (this.i + 1) % WAYPOINTS.length; dist -= d; } else { this.pos[0] += dx / d * dist; this.pos[1] += dy / d * dist; dist = 0; } } }
+  step(dt) { const o = this.pos.slice(); this.advance(this.speed * dt); this.vel = [(this.pos[0] - o[0]) / dt, (this.pos[1] - o[1]) / dt]; return this.pos; }
+}
+
+/* Radio simulator: noise, packet loss, wall (NLOS) bias, dead anchors, drift, forced obstruction */
+function measure(pos, anchors, cfg, rng) {
+  return anchors.map((a, i) => {
+    if (cfg.dead && cfg.dead.has(a.id)) return null;
+    if (rng() < cfg.loss) return null;
+    const d = Math.hypot(pos[0] - a.x, pos[1] - a.y), k = wallsBetween(a.x, a.y, pos[0], pos[1]);
+    let bias = k * cfg.wallBias * (0.5 + rng()), nlos = k > 0;
+    if (cfg.obstruct && cfg.obstruct.has(a.id)) { bias += cfg.obstructBias * (0.6 + 0.8 * rng()); nlos = true; }
+    if (cfg.burst) { const st = rng._b || (rng._b = {}); if (!st[a.id] && rng() < cfg.burst) st[a.id] = 20 + (rng() * 30 | 0); if (st[a.id] > 0) { st[a.id]--; bias += 3.2; nlos = true; } }
+    if (cfg.drift && cfg.drift.has(a.id)) { bias += cfg.driftBias; nlos = true; }
+    const sigma = cfg.sigma * (nlos ? 1.8 : 1);
+    return { r: Math.max(0.3, d + bias + sigma * rng.g()), nlos, bias };
+  });
+}
+
+/* Plain trilateration: Gauss-Newton least squares (optionally weighted) */
+function lsFix(anchors, meas, init, w) {
+  let x = init[0], y = init[1], n = 0;
+  for (let it = 0; it < 12; it++) {
+    let a11 = 1e-3, a12 = 0, a22 = 1e-3, b1 = 0, b2 = 0; n = 0;
+    for (let i = 0; i < anchors.length; i++) {
+      const m = meas[i]; if (!m) continue; n++;
+      const dx = x - anchors[i].x, dy = y - anchors[i].y, d = Math.max(0.2, Math.hypot(dx, dy)), ux = dx / d, uy = dy / d, res = m.r - d, wt = w ? w[i] : 1;
+      a11 += wt * ux * ux; a12 += wt * ux * uy; a22 += wt * uy * uy; b1 += wt * ux * res; b2 += wt * uy * res;
+    }
+    if (!n) return null;
+    const lam = n < 3 ? 0.6 : 0.05, det = (a11 + lam) * (a22 + lam) - a12 * a12;
+    x += ((a22 + lam) * b1 - a12 * b2) / det; y += ((a11 + lam) * b2 - a12 * b1) / det;
+  }
+  return [Math.min(FLOOR.w, Math.max(0, x)), Math.min(FLOOR.h, Math.max(0, y))];
+}
+/* Baseline B: trilateration + constant-velocity Kalman filter (what most teams build) */
+class KalmanCV {
+  constructor() { this.x = null; }
+  update(z, dt) {
+    if (!z) { if (this.x) { this.x[0] += this.x[2] * dt; this.x[1] += this.x[3] * dt; } return this.x ? [this.x[0], this.x[1]] : null; }
+    if (!this.x) { this.x = [z[0], z[1], 0, 0]; this.P = [10, 10, 4, 4]; return z.slice(); }
+    const q = 0.4 * dt, R = 2.0;
+    for (let k = 0; k < 2; k++) {
+      let p = this.x[k], v = this.x[k + 2], P = this.P[k], Pv = this.P[k + 2];
+      p += v * dt; P += dt * dt * Pv + q; Pv += q;
+      const K = P / (P + R), K2 = (Pv * 0.2) / (P + R); const inn = z[k] - p;
+      p += K * inn; v += K2 / Math.max(dt, 1e-3) * inn * 0.5; P *= (1 - K);
+      this.x[k] = p; this.x[k + 2] = v; this.P[k] = P; this.P[k + 2] = Pv;
+    }
+    return [this.x[0], this.x[1]];
+  }
+}
+
+/* wall-count lookup per anchor (0.5 m grid) so the filter can predict wall bias for any particle */
+const KCACHE = {};
+function kGridCompute(a) {
+  const W = FLOOR.w * 2, H = FLOOR.h * 2, g = new Uint8Array(W * H);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) g[j * W + i] = wallsBetween(a.x, a.y, (i + 0.5) / 2, (j + 0.5) / 2);
+  return g;
+}
+function kGrid(a) { const key = SITE_ID + a.id + ':' + a.x + ',' + a.y; return KCACHE[key] || (KCACHE[key] = kGridCompute(a)); }
+function kAt(g, x, y) { const i = Math.min(FLOOR.w * 2 - 1, Math.max(0, x * 2 | 0)), j = Math.min(FLOOR.h * 2 - 1, Math.max(0, y * 2 | 0)); return g[j * FLOOR.w * 2 + i]; }
+
+/* LOCUS: trust scorer + weighted robust fix + map-aware particle filter */
+class Locus {
+  constructor(anchors, opts = {}) {
+    this.anchors = anchors; this.N = opts.N || 600; this.sigma = opts.sigma || 0.6; this.rng = opts.rng || rngMake(7);
+    this.inflate = opts.inflate || 1.0; this.wallMu = opts.wallMu || 1.4; this.kg = anchors.map(kGrid);
+    this.px = new Float64Array(this.N); this.py = new Float64Array(this.N); this.vx = new Float64Array(this.N); this.vy = new Float64Array(this.N); this.w = new Float64Array(this.N).fill(1 / this.N);
+    this.inited = false; this.trust = anchors.map(() => 0.8); this.last = anchors.map(() => null); this.silent = anchors.map(() => 0); this.hist = anchors.map(() => []);
+    this.est = null; this.fix = null; this.scorer = opts.scorer || null;
+    /* mode: 'rules' (hand-written), 'ml' (LightGBM only) or 'fused' (both vote; either one can veto a reading). Both scores are always kept for display. */
+    this.mode = opts.mode || (this.scorer ? 'ml' : 'rules'); this.tRule = anchors.map(() => 0.8); this.tML = anchors.map(() => 0.8);
+  }
+  /* moving anchors: the believed position (and its uncertainty sd, m) is used from the next reading on.
+     A jump of more than 0.5 m (drag / teleport) resets that anchor's jump + variance history so the move is not scored as a bad reading. */
+  moveAnchor(i, x, y, sd) {
+    const a = this.anchors[i], far = Math.hypot(x - a.x, y - a.y) > 0.5; if (sd != null) a.sd = sd; if (x === a.x && y === a.y) return;
+    a.x = x; a.y = y; this.kg[i] = kGridCompute(a); if (far) { this.last[i] = null; this.hist[i] = []; }
+  }
+  _init(meas) {
+    const c = [FLOOR.w / 2, FLOOR.h / 2], f = lsFix(this.anchors, meas, c) || c, r = this.rng;
+    for (let i = 0; i < this.N; i++) { this.px[i] = Math.min(FLOOR.w - .1, Math.max(.1, f[0] + r.g() * 3.5)); this.py[i] = Math.min(FLOOR.h - .1, Math.max(.1, f[1] + r.g() * 3.5)); this.vx[i] = r.g() * .5; this.vy[i] = r.g() * .5; }
+    this.inited = true; this.est = f.slice();
+  }
+  _moments() {
+    let mx = 0, my = 0, sw = 0; for (let i = 0; i < this.N; i++) { const q = this.w[i]; mx += q * this.px[i]; my += q * this.py[i]; sw += q; }
+    mx /= sw; my /= sw; let sxx = 0, sxy = 0, syy = 0;
+    for (let i = 0; i < this.N; i++) { const q = this.w[i], dx = this.px[i] - mx, dy = this.py[i] - my; sxx += q * dx * dx; sxy += q * dx * dy; syy += q * dy * dy; }
+    return { mx, my, sxx: sxx / sw, sxy: sxy / sw, syy: syy / sw };
+  }
+  step(meas, dt) {
+    const A = this.anchors, r = this.rng, N = this.N, sg = this.sigma;
+    if (!this.inited) { if (!meas.some(Boolean)) return null; this._init(meas); }
+    /* 1. predict (motion history) */
+    for (let i = 0; i < N; i++) {
+      const ox = this.px[i], oy = this.py[i];
+      this.vx[i] = this.vx[i] * 0.96 + r.g() * 0.28; this.vy[i] = this.vy[i] * 0.96 + r.g() * 0.28;
+      const sp = Math.hypot(this.vx[i], this.vy[i]); if (sp > 2.2) { this.vx[i] *= 2.2 / sp; this.vy[i] *= 2.2 / sp; }
+      let nx = ox + this.vx[i] * dt + r.g() * 0.05, ny = oy + this.vy[i] * dt + r.g() * 0.05;
+      if (nx < 0 || ny < 0 || nx > FLOOR.w || ny > FLOOR.h || crossesWall(ox, oy, nx, ny)) { nx = ox; ny = oy; this.vx[i] *= -0.2; this.vy[i] *= -0.2; this.w[i] *= 0.2; }
+      this.px[i] = nx; this.py[i] = ny;
+    }
+    const pm = this._moments(), prior = [pm.mx, pm.my], priorStd = Math.sqrt(Math.max(0.04, (pm.sxx + pm.syy) / 2));
+    /* 2. trust scorer: residual vs motion prior, jump, variance -> 0..1 + reason */
+    const reasons = [], usable = [], tRs = [];
+    /* optional ML trust scorer (LightGBM exported to JS): same 14 features as backend/engine.py */
+    let mlP = null;
+    if (this.scorer) {
+      const fs = A.map((a, i) => {
+        const m = meas[i]; if (!m) return null;
+        const kp = kAt(this.kg[i], prior[0], prior[1]), pred = Math.hypot(prior[0] - a.x, prior[1] - a.y) + kp * this.wallMu, res = m.r - pred, s = Math.sqrt(sg * sg + priorStd * priorStd + Math.pow(kp * 0.8, 2) + (a.sd || 0) * (a.sd || 0));
+        const h = this.hist[i].concat([m.r]).slice(-8), jump = this.last[i] == null ? 0 : Math.abs(m.r - this.last[i]); let vr = 0;
+        if (h.length > 3) { const mu = h.reduce((p, c) => p + c, 0) / h.length; vr = Math.sqrt(h.reduce((p, c) => p + (c - mu) * (c - mu), 0) / h.length); }
+        return { res, s, jump, vr, kp, pred, r: m.r };
+      });
+      const nRead = fs.filter(Boolean).length; mlP = [];
+      fs.forEach((f, i) => {
+        if (!f) return; const oth = fs.map((g, j) => g && j !== i ? Math.abs(g.res) / g.s : null).filter(v => v !== null).sort((p, q) => p - q);
+        const peer = oth.length ? (oth.length % 2 ? oth[(oth.length - 1) / 2] : (oth[oth.length / 2 - 1] + oth[oth.length / 2]) / 2) : NaN;
+        mlP[i] = this.scorer([f.res / f.s, f.res, Math.abs(f.res) / f.s, f.jump / (3 * sg), f.jump, f.vr / sg, f.vr, f.kp, priorStd, f.r, f.pred, peer, nRead, this.wallMu]);
+      });
+    }
+    A.forEach((a, i) => {
+      const m = meas[i];
+      if (!m) { this.silent[i] += dt; this.trust[i] = Math.max(0, this.trust[i] - dt * 0.8); this.tRule[i] = Math.max(0, this.tRule[i] - dt * 0.8); this.tML[i] = Math.max(0, this.tML[i] - dt * 0.8); reasons[i] = this.silent[i] > 1 ? 'No packets for ' + this.silent[i].toFixed(0) + ' s' : 'Packet lost'; usable[i] = false; return; }
+      this.silent[i] = 0;
+      const kp = kAt(this.kg[i], prior[0], prior[1]), pred = Math.hypot(prior[0] - a.x, prior[1] - a.y) + kp * this.wallMu, res = m.r - pred, s = Math.sqrt(sg * sg + priorStd * priorStd + Math.pow(kp * 0.8, 2) + (a.sd || 0) * (a.sd || 0));
+      const tol = res > 0 ? 2.0 * s : 3.2 * s, zr = Math.abs(res) / tol, tR = 1 / (1 + Math.pow(zr, 3));
+      const h = this.hist[i]; h.push(m.r); if (h.length > 8) h.shift();
+      const jump = this.last[i] == null ? 0 : Math.abs(m.r - this.last[i]), jx = Math.max(0, jump - 0.25 - 3 * sg), tJ = 1 / (1 + Math.pow(jx / (3 * sg), 2));
+      let vr = 0; if (h.length > 3) { const mu = h.reduce((p, c) => p + c, 0) / h.length; vr = Math.sqrt(h.reduce((p, c) => p + (c - mu) * (c - mu), 0) / h.length); }
+      const tV = 1 / (1 + Math.pow(Math.max(0, vr - 1.6 * sg) / (1.5 * sg), 2));
+      tRs.push(tR); const rRule = tR * tJ * Math.sqrt(tV), rML = mlP ? mlP[i] : null;
+      this.tRule[i] = this.tRule[i] * 0.55 + rRule * 0.45; if (rML != null) this.tML[i] = this.tML[i] * 0.55 + rML * 0.45;
+      const fused = rML == null ? rRule : Math.min(rRule, rML) < 0.25 ? Math.min(rRule, rML) : (rRule + rML) / 2;   /* agree -> average; either sure it's bad -> veto */
+      const raw = Math.max(0.02, this.mode === 'ml' && rML != null ? rML : this.mode === 'fused' ? fused : rRule); this.trust[i] = this.trust[i] * 0.55 + raw * 0.45; this.last[i] = m.r;
+      let why = 'Consistent with motion model';
+      if (this.mode === 'fused' && rML != null && this.trust[i] < 0.7 && rML < 0.4 && rRule >= 0.6) why = 'ML flags it (p clean ' + rML.toFixed(2) + '), rules see no problem';
+      else if (this.trust[i] < 0.7) { if (tR <= tJ && tR <= tV) why = res > 0 ? 'Reads +' + res.toFixed(1) + ' m beyond what the walls explain (obstruction)' : 'Reads ' + (-res).toFixed(1) + ' m shorter than predicted'; else if (tJ <= tV) why = 'Sudden ' + jump.toFixed(1) + ' m jump between readings'; else why = 'Variance spike (σ ' + vr.toFixed(1) + ' m)'; }
+      reasons[i] = why; usable[i] = true;
+    });
+    /* collective disagreement => our prior is probably wrong, not the anchors: relocalise */
+    const lost = tRs.length >= 2 && tRs.filter(t => t < 0.3).length >= Math.ceil(tRs.length * 0.6);
+    this.lostN = lost ? (this.lostN || 0) + 1 : 0; const relocal = this.lostN >= 3;
+    /* 3. trust-weighted robust fix from the motion prior */
+    const wTrust = this.trust.map((t, i) => usable[i] ? t : 0);
+    this.fix = wTrust.some(t => t > 0.05) ? lsFix(A, meas, prior, wTrust.map(t => t * t)) : null;
+    /* 4. particle weight update with trust-inflated sigma + heavy-tail mix */
+    if (relocal) { const f = lsFix(A, meas, prior); if (f) for (let p = 0; p < N * 0.15; p++) { const j = (r() * N) | 0; this.px[j] = Math.min(FLOOR.w - .1, Math.max(.1, f[0] + r.g() * 3)); this.py[j] = Math.min(FLOOR.h - .1, Math.max(.1, f[1] + r.g() * 3)); this.w[j] = 1 / N; } }
+    let sw = 0; const eps = 0.04;
+    for (let p = 0; p < N; p++) {
+      let lw = Math.log(this.w[p] + 1e-300);
+      for (let i = 0; i < A.length; i++) { const m = meas[i]; if (!m || !usable[i]) continue; const t = relocal ? Math.max(this.trust[i], 0.45) : this.trust[i]; if (t < 0.08) continue; const kk = kAt(this.kg[i], this.px[p], this.py[p]), si = Math.sqrt(sg * sg / t + Math.pow(kk * 0.8, 2) + (A[i].sd || 0) * (A[i].sd || 0)) + 0.15, d = Math.hypot(this.px[p] - A[i].x, this.py[p] - A[i].y) + kk * this.wallMu, z = (m.r - d) / si; lw += Math.log((1 - eps) * Math.exp(-0.5 * z * z) / si + eps / 25); }
+      this.w[p] = Math.exp(lw); sw += this.w[p];
+    }
+    if (!(sw > 0)) { this.w.fill(1 / N); sw = 1; }
+    let ess = 0; for (let p = 0; p < N; p++) { this.w[p] /= sw; ess += this.w[p] * this.w[p]; } ess = 1 / ess;
+    /* 5. estimate + 90% ellipse + room probabilities */
+    const mo = this._moments(), cxx = mo.sxx, cyy = mo.syy, cxy = mo.sxy;
+    const tr = cxx + cyy, det = cxx * cyy - cxy * cxy, disc = Math.sqrt(Math.max(0, tr * tr / 4 - det)), l1 = tr / 2 + disc, l2 = Math.max(1e-4, tr / 2 - disc);
+    const k = 4.605 * this.inflate * this.inflate, ell = { a: Math.max(0.35, Math.sqrt(k * l1)), b: Math.max(0.3, Math.sqrt(k * l2)), th: 0.5 * Math.atan2(2 * cxy, cxx - cyy) };
+    const rp = {}; for (let p = 0; p < N; p++) { const id = roomAt(this.px[p], this.py[p]); rp[id] = (rp[id] || 0) + this.w[p]; }
+    this.est = [mo.mx, mo.my];
+    /* self-calibration: re-fit wall bias (m per wall) from readings we trust */
+    A.forEach((a, i) => { const m = meas[i]; if (!m || !usable[i] || this.trust[i] < 0.5) return; const ke = kAt(this.kg[i], mo.mx, mo.my); if (ke < 1) return; const mu = (m.r - Math.hypot(mo.mx - a.x, mo.my - a.y)) / ke; this.wallMu = Math.min(3.5, Math.max(0.8, this.wallMu + 0.02 * (mu - this.wallMu))); });
+    const out = { wallMu: this.wallMu, pos: this.est.slice(), ell, rooms: rp, trust: this.trust.slice(), tRule: this.tRule.slice(), tML: this.scorer ? this.tML.slice() : null, mode: this.mode, reasons, usable, fix: this.fix, ess: ess / N, relocal };
+    /* 6. resample + roughen */
+    if (ess < N * 0.6) {
+      const nx = new Float64Array(N), ny = new Float64Array(N), nvx = new Float64Array(N), nvy = new Float64Array(N); let c = this.w[0], idx = 0; const u0 = r() / N;
+      for (let j = 0; j < N; j++) { const u = u0 + j / N; while (u > c && idx < N - 1) { idx++; c += this.w[idx]; } nx[j] = this.px[idx] + r.g() * 0.07; ny[j] = this.py[idx] + r.g() * 0.07; nvx[j] = this.vx[idx]; nvy[j] = this.vy[idx]; }
+      this.px = nx; this.py = ny; this.vx = nvx; this.vy = nvy; this.w.fill(1 / N);
+    }
+    return out;
+  }
+}
+if (typeof module !== 'undefined') module.exports = { get ROOMS() { return ROOMS; }, get WALLS() { return WALLS; }, get ANCHORS() { return ANCHORS; }, get DROP_ORDER() { return DROP_ORDER; }, get WAYPOINTS() { return WAYPOINTS; }, FLOOR, setSite, setRoom, roomAt, roomName, wallsBetween, crossesWall, rngMake, Walker, measure, lsFix, KalmanCV, Locus };
+
+/* ===== LOCUS Moving Beacons: every tunable number in one place (metres, seconds, m/s) ===== */
+const MB_CONFIG = {
+  room: { w: 12, h: 8 },                          /* open floor, no interior walls; y points NORTH (up on the map) */
+  tickHz: 10,                                     /* simulation + estimator rate */
+  maxBeacons: 8,
+  beacons: [[1, 1], [11, 1], [11, 7], [1, 7]],    /* start positions (corners); A1..A4 */
+
+  /* tracked object: walks between waypoints, stops at each one (someone at a bed / desk) */
+  object: { speed: 0.5, pause: 6, waypoints: [[3, 2.5], [9, 2.5], [9, 5.5], [6, 4], [3, 5.5]] },
+
+  /* simulated beacon motion: walk to a random waypoint, pause, pick a new one.
+     homeRadius: waypoints stay within this distance of the beacon's station (0 = roam the whole room) */
+  motion: { speed: 0.6, pauseMin: 1, pauseMax: 3, margin: 0.6, homeRadius: 2 },
+
+  /* what the system BELIEVES about a moving beacon's position: its own self-reported position.
+     believed = true + drift + noise.  drift is an Ornstein-Uhlenbeck random walk (sd driftRate*sqrt(tau/2) at rest). */
+  report: { hz: 5, noise: 0.05, driftRate: 0.02, driftTau: 30 },
+  external: { posSd: 0.1 },                       /* uncertainty assumed for update_beacon_position() reports */
+  surveyedSd: 0,                                  /* fixed beacons are surveyed: position known exactly */
+
+  /* radio: range = true distance + multipath bias (smooth in BOTH beacon and object position) + white noise */
+  radio: { sigma: 0.3, shadowSd: 0.9, shadowCorr: 1.5, loss: 0.1 },
+
+  /* estimator: existing LOCUS particle filter (trust, dead beacons) + sliding-window weighted least squares */
+  estimator: { N: 400, sigma: 0.9, windowSec: 4, maxReadings: 400, objSpeedSd: 0.25, huber: 2.0, priorScale: 1, motionComp: true },
+
+  /* movement display */
+  display: { threshold: 0.1, smoothing: 0.5, trailLen: 15, recentSec: 10, speedSec: 1, settleSec: 0.8, turnDeg: 35, arrowHoldSec: 8, logMax: 200 },
+
+  /* fixed vs moving comparison */
+  compare: { seconds: 90, warmup: 5, seeds: [1, 2, 3, 4],
+    layouts: { '4 corners': [[1, 1], [11, 1], [11, 7], [1, 7]], '3 corners': [[1, 1], [11, 1], [6, 7]], '3 on one wall': [[2, 0.6], [6, 0.6], [10, 0.6]], '2 beacons': [[1, 4], [11, 4]] } },
+};
+if (typeof module !== 'undefined') module.exports = { MB_CONFIG };
+/* ===== LOCUS Moving Beacons: movement maths + per-beacon movement tracker. Pure, no DOM.
+   Coordinates in metres, y = north. Bearing = degrees clockwise from north (0 = N, 90 = E). ===== */
+const COMPASS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+function displacement(a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], dist = Math.hypot(dx, dy), bearing = dist > 0 ? (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360 : 0;
+  return { dx, dy, dist, bearing, compass: COMPASS[Math.round(bearing / 45) % 8] };
+}
+const sgn = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1);
+function fmtMove(id, d) { return `${id} moved ${d.dist.toFixed(1)} m toward ${Math.round(d.bearing)}° (${d.compass}) · dx = ${sgn(d.dx)} m, dy = ${sgn(d.dy)} m`; }
+function angGap(a, b) { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+
+/* Turns a stream of (possibly noisy) believed positions into what the dashboard shows:
+   - smoothed position (EMA; exact sources such as a drag or an external report skip the smoothing)
+   - move SEGMENTS: start when the beacon is >= threshold away from where it rested, follow it while it moves,
+     end when it has made no progress for settleSec or turns by more than turnDeg. One log entry per segment,
+     created at the start and updated live, so jitter below the threshold never reaches the log.
+   - fading trail, odometer (total + last recentSec), speed over speedSec. */
+class MoveTracker {
+  constructor(cfg) { this.cfg = cfg; this.b = {}; this.log = []; }
+  reset(id) { delete this.b[id]; }
+  _st(id, p, t) { return this.b[id] || (this.b[id] = { sm: p.slice(), raw: p.slice(), rest: p.slice(), pivot: p.slice(), progT: t, seg: null, last: null, trail: [p.slice()], odo: 0, odoPts: [], hist: [{ t, p: p.slice() }] }); }
+  update(id, x, y, t, exact) {
+    const c = this.cfg, fresh = !this.b[id], s = this._st(id, [x, y], t), thr = c.threshold;
+    s.raw = [x, y]; if (fresh) return null;
+    const al = exact ? 1 : c.smoothing; s.sm = [s.sm[0] + al * (x - s.sm[0]), s.sm[1] + al * (y - s.sm[1])];
+    const p = s.sm;
+    /* trail + odometer: a point every threshold metres */
+    const lt = s.trail[s.trail.length - 1], step = Math.hypot(p[0] - lt[0], p[1] - lt[1]);
+    if (step >= thr) { s.trail.push(p.slice()); if (s.trail.length > c.trailLen) s.trail.shift(); s.odo += step; s.odoPts.push({ t, d: step }); }
+    s.odoPts = s.odoPts.filter(q => t - q.t <= c.recentSec);
+    s.hist.push({ t, p: p.slice() }); while (s.hist.length > 2 && t - s.hist[1].t >= c.speedSec) s.hist.shift();
+    /* segments */
+    if (Math.hypot(p[0] - s.pivot[0], p[1] - s.pivot[1]) >= thr / 2) { s.pivot = p.slice(); s.progT = t; }
+    if (!s.seg) {
+      if (Math.hypot(p[0] - s.rest[0], p[1] - s.rest[1]) >= thr) this._start(id, s, s.rest, p, t);
+    } else {
+      const g = s.seg; g.to = p.slice(); g.t1 = t; Object.assign(g, displacement(g.from, g.to));
+      const dm = Math.hypot(p[0] - g.mid[0], p[1] - g.mid[1]);
+      if (dm >= 3 * thr) {   /* turn check over a 3-threshold baseline so jitter cannot fake a turn */
+        const before = displacement(g.from, g.mid), now = displacement(g.mid, p);
+        if (before.dist >= 3 * thr && angGap(before.bearing, now.bearing) > c.turnDeg) { this._end(s, g.mid, t); this._start(id, s, s.rest, p, t); }
+        else g.mid = p.slice();
+      }
+      if (s.seg && t - s.progT >= c.settleSec) this._end(s, p, t);
+    }
+    return s.seg;
+  }
+  _start(id, s, from, to, t) {
+    const g = { id, from: from.slice(), to: to.slice(), mid: from.slice(), t0: t, t1: t, live: true, ...displacement(from, to) };
+    s.seg = g; s.last = g; this.log.unshift(g); if (this.log.length > this.cfg.logMax) this.log.pop();
+  }
+  _end(s, at, t) { const g = s.seg; g.to = at.slice(); g.t1 = t; g.live = false; Object.assign(g, displacement(g.from, g.to)); s.rest = at.slice(); s.seg = null; if (g.dist < this.cfg.threshold) this.log.splice(this.log.indexOf(g), 1); }
+  stats(id, t) {
+    const s = this.b[id]; if (!s) return null; const h0 = s.hist[0], dt = t - h0.t, v = dt > 0 ? Math.hypot(s.sm[0] - h0.p[0], s.sm[1] - h0.p[1]) / dt : 0;
+    return { pos: s.sm, total: s.odo, recent: s.odoPts.reduce((a, q) => a + q.d, 0), speed: v * this.cfg.speedSec < this.cfg.threshold ? 0 : v, moving: !!s.seg, seg: s.seg || (s.last && t - s.last.t1 <= this.cfg.arrowHoldSec ? s.last : null), trail: s.trail };
+  }
+}
+if (typeof module !== 'undefined') module.exports = { displacement, fmtMove, angGap, MoveTracker, COMPASS };
+/* ===== LOCUS Moving Beacons: simulator. Pure, no DOM. Needs rngMake (engine.js).
+   Every beacon has TWO positions:
+     truth    - where it physically is (simulation only; the radio is generated from it)
+     believed - what the system is told: surveyed (fixed), self-reported with noise + drift (moving), or update_beacon_position()
+   mode: 'fixed' | 'moving' (simulated waypoint walk) | 'external' (positions arrive from outside, e.g. a real phone) ===== */
+function hashSeed(s) { let h = 2166136261; for (const ch of String(s)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; }
+
+/* multipath / shadowing bias of a link: a smooth random field of BOTH ends (Gaussian-like, sd shadowSd, correlation ~shadowCorr m).
+   Same beacon + same object position -> same bias, so a fixed beacon next to a still object keeps the same error;
+   moving either end changes it. One field per beacon id, independent of mode and seed of the motion. */
+function makeShadow(id, seed, sd, corr) {
+  const r = rngMake(hashSeed(id + ':' + seed)), K = 24, w = [];
+  for (let k = 0; k < K; k++) { const kn = r.g() / corr, km = r.g() / corr, ka = r.g() / corr, kb = r.g() / corr; w.push([kn, km, ka, kb, r() * 2 * Math.PI]); }
+  const a = sd * Math.sqrt(2 / K);
+  return (b, o) => { let s = 0; for (const q of w) s += Math.cos(q[0] * b[0] + q[1] * b[1] + q[2] * o[0] + q[3] * o[1] + q[4]); return a * s; };
+}
+
+class ObjectWalker {
+  constructor(cfg) { this.cfg = cfg; this.i = 0; this.pos = cfg.waypoints[0].slice(); this.wait = cfg.pause; }
+  step(dt) {
+    if (this.wait > 0) { this.wait -= dt; return this.pos; }
+    const W = this.cfg.waypoints, t = W[(this.i + 1) % W.length], dx = t[0] - this.pos[0], dy = t[1] - this.pos[1], d = Math.hypot(dx, dy), v = this.cfg.speed * dt;
+    if (d <= v) { this.pos = t.slice(); this.i = (this.i + 1) % W.length; this.wait = this.cfg.pause; } else this.pos = [this.pos[0] + dx / d * v, this.pos[1] + dy / d * v];
+    return this.pos;
+  }
+}
+
+class World {
+  constructor(cfg, seed = 1, opts = {}) {
+    this.cfg = cfg; this.seed = seed; this.t = 0; this.beacons = []; this.nextId = 1;
+    /* separate random streams so fixed / moving runs see the SAME object path and radio noise */
+    this.rRadio = rngMake(seed * 101 + 1); this.rMove = rngMake(seed * 101 + 2); this.rRep = rngMake(seed * 101 + 3);
+    this.obj = new ObjectWalker(cfg.object); this.events = [];
+    (opts.beacons || cfg.beacons).forEach(p => this.addBeacon(p[0], p[1], opts.mode || 'fixed'));
+  }
+  addBeacon(x, y, mode = 'fixed', wantId) {
+    if (this.beacons.length >= this.cfg.maxBeacons) return null;
+    const used = new Set(this.beacons.map(b => b.id)); let n = 1; while (used.has('A' + n)) n++;
+    const id = wantId && !used.has(wantId) ? wantId : 'A' + n, b = { id, mode, dead: false, home: [x, y], truth: [x, y], believed: [x, y], sd: this.cfg.surveyedSd, drift: [0, 0], target: null, pause: 0, nextRep: 0, held: false,
+      shadow: makeShadow(id, 'room', 1, this.cfg.radio.shadowCorr) };   /* unit field, scaled by radio.shadowSd at measurement time */
+    this.beacons.push(b); this.setMode(id, mode); return b;
+  }
+  removeBeacon(id) { const i = this.beacons.findIndex(b => b.id === id); if (i >= 0) this.beacons.splice(i, 1); return i >= 0; }
+  get(id) { return this.beacons.find(b => b.id === id); }
+  setMode(id, mode) {
+    const b = this.get(id); if (!b) return; b.mode = mode; b.target = null; b.pause = 0;
+    if (mode === 'fixed') { b.believed = b.truth.slice(); b.sd = this.cfg.surveyedSd; b.drift = [0, 0]; }   /* re-surveyed where it stands */
+    else if (mode === 'moving') b.sd = this.repSd();
+    else b.sd = this.cfg.external.posSd;
+  }
+  repSd() { const r = this.cfg.report; return Math.hypot(r.noise, r.driftRate * Math.sqrt(r.driftTau / 2)); }
+  /* the user drags a beacon: it physically moves there; a fixed beacon is re-surveyed, a moving one reports it with its usual noise */
+  dragBeacon(id, x, y) { const b = this.get(id); if (!b) return; b.truth = [x, y]; b.home = [x, y]; b.target = null; b.pause = 1; if (b.mode !== 'moving') b.believed = [x, y]; else this._report(b); }
+  /* external position report (real phone data later). In the simulation the radio needs a truth, so truth follows the report. */
+  externalUpdate(id, x, y, ts) {
+    let b = this.get(id); if (!b) b = this.addBeacon(x, y, 'external', id); if (!b) return null;
+    if (b.mode !== 'external') this.setMode(id, 'external');
+    b.truth = [x, y]; b.home = [x, y]; b.believed = [x, y]; b.extTs = ts == null ? this.t : ts; return b;
+  }
+  _report(b) {
+    const r = this.cfg.report, g = this.rRep;
+    b.believed = [b.truth[0] + b.drift[0] + r.noise * g.g(), b.truth[1] + b.drift[1] + r.noise * g.g()];
+  }
+  step(dt) {
+    this.t += dt; const C = this.cfg, R = C.room, M = C.motion, rp = C.report;
+    this.obj.step(dt);
+    for (const b of this.beacons) {
+      if (b.mode !== 'moving') continue;
+      if (!b.held) {
+        if (b.pause > 0) b.pause -= dt;
+        else {
+          if (!b.target) {   /* next waypoint: anywhere in the room, or within homeRadius of the beacon's station */
+            const hr = M.homeRadius, cl = (v, L) => Math.min(L - M.margin, Math.max(M.margin, v));
+            b.target = hr ? [cl(b.home[0] + (2 * this.rMove() - 1) * hr, R.w), cl(b.home[1] + (2 * this.rMove() - 1) * hr, R.h)] : [M.margin + this.rMove() * (R.w - 2 * M.margin), M.margin + this.rMove() * (R.h - 2 * M.margin)];
+          }
+          const dx = b.target[0] - b.truth[0], dy = b.target[1] - b.truth[1], d = Math.hypot(dx, dy), v = M.speed * dt;
+          if (d <= v) { b.truth = b.target.slice(); b.target = null; b.pause = M.pauseMin + this.rMove() * (M.pauseMax - M.pauseMin); }
+          else b.truth = [b.truth[0] + dx / d * v, b.truth[1] + dy / d * v];
+        }
+      }
+      const k = Math.exp(-dt / rp.driftTau), q = rp.driftRate * Math.sqrt(dt);   /* OU drift of the self-reported position */
+      b.drift = [b.drift[0] * k + q * this.rRep.g(), b.drift[1] * k + q * this.rRep.g()];
+      if (this.t >= b.nextRep - 1e-9) { b.nextRep = this.t + 1 / rp.hz; this._report(b); }
+    }
+  }
+  /* one range reading per beacon (null = packet lost / dead) */
+  measure() {
+    const o = this.obj.pos, rc = this.cfg.radio, g = this.rRadio, out = {};
+    for (const b of this.beacons) {
+      const lost = g() < rc.loss, n = g.g();   /* always draw both so every run consumes the same random numbers */
+      if (b.dead || lost) { out[b.id] = null; continue; }
+      const d = Math.hypot(o[0] - b.truth[0], o[1] - b.truth[1]);
+      out[b.id] = Math.max(0.1, d + rc.shadowSd * b.shadow(b.truth, o) + rc.sigma * n);
+    }
+    return out;
+  }
+}
+if (typeof module !== 'undefined') module.exports = { World, ObjectWalker, makeShadow, hashSeed };
+/* ===== LOCUS Moving Beacons: estimator. Needs Locus + rngMake + setRoom (engine.js). Pure, no DOM.
+   1. The existing LOCUS particle filter runs on every reading, with each beacon's BELIEVED position and its uncertainty
+      (Locus.moveAnchor). Its trust scores and dead-beacon handling are unchanged.
+   2. Every usable reading goes into a sliding window {time, beacon position at that time, range, trust}. A moving beacon
+      therefore contributes readings from several positions.
+   3. Final estimate: weighted least squares over the window, started from (and regularised by) the particle filter.
+        weight = trust^2 / (sigma^2 + beaconSd^2 + (objSpeedSd * age)^2)
+      Old readings are shifted by how far the particle filter says the object moved since (motion compensation),
+      and get less weight with age. Huber down-weighting caps any single bad reading. ===== */
+class MovingEstimator {
+  constructor(cfg, seed = 11) { setRoom(cfg.room.w, cfg.room.h, []); this.cfg = cfg; this.seed = seed; this.ids = ''; this.anchors = []; this.win = []; this.track = []; this.loc = null; this.out = null; }
+  _rebuild(ids, bel) {
+    const E = this.cfg.estimator, old = this.loc;
+    this.anchors = ids.map(id => ({ id, x: bel[id].x, y: bel[id].y, sd: bel[id].sd }));
+    this.loc = new Locus(this.anchors, { N: E.N, sigma: E.sigma, rng: rngMake(this.seed), inflate: 1 });
+    if (old && old.inited) {   /* keep the particle cloud when a beacon is added / removed */
+      this.loc.px.set(old.px); this.loc.py.set(old.py); this.loc.vx.set(old.vx); this.loc.vy.set(old.vy); this.loc.w.set(old.w); this.loc.inited = true;
+      const ot = {}; old.anchors.forEach((a, i) => ot[a.id] = old.trust[i]); this.loc.trust = ids.map(id => ot[id] != null ? ot[id] : 0.8);
+    }
+    this.ids = ids.join();
+  }
+  /* t: time (s); ranges: {id: metres | null}; bel: {id: {x, y, sd}}; dt: seconds since last call */
+  step(t, ranges, bel, dt) {
+    const E = this.cfg.estimator, ids = Object.keys(bel);
+    if (ids.join() !== this.ids) this._rebuild(ids, bel);
+    this.anchors.forEach((a, i) => this.loc.moveAnchor(i, bel[a.id].x, bel[a.id].y, bel[a.id].sd));
+    const meas = this.anchors.map(a => ranges[a.id] == null ? null : { r: ranges[a.id] });
+    const o = this.loc.step(meas, dt); if (!o) return this.out = null;
+    this.track.push({ t, p: o.pos.slice() }); while (this.track.length && t - this.track[0].t > E.windowSec + 1) this.track.shift();
+    this.anchors.forEach((a, i) => { if (meas[i] && o.usable[i]) this.win.push({ t, id: a.id, x: a.x, y: a.y, sd: a.sd || 0, r: meas[i].r, trust: o.trust[i], pf: o.pos.slice() }); });
+    this.win = this.win.filter(q => t - q.t <= E.windowSec + 1e-9 && bel[q.id]); if (this.win.length > E.maxReadings) this.win = this.win.slice(-E.maxReadings);
+    const ref = this._wls(t, o);
+    return this.out = { ...o, pf: o.pos.slice(), pos: ref.pos, ell: ref.ell, window: this.win.length, perBeacon: ids.reduce((m, id) => (m[id] = this.win.filter(q => q.id === id).length, m), {}), ids: this.anchors.map(a => a.id) };
+  }
+  _wls(t, o) {
+    const E = this.cfg.estimator, sg2 = E.sigma * E.sigma, mo = this.loc._moments();
+    /* prior from the particle filter (its covariance, floored) */
+    const ps = E.priorScale, pc = [Math.max(0.05, mo.sxx) * ps, mo.sxy * ps, Math.max(0.05, mo.syy) * ps], pd = pc[0] * pc[2] - pc[1] * pc[1], pi = [pc[2] / pd, -pc[1] / pd, pc[0] / pd];
+    const rd = this.win.map(q => [q.x, q.y, q.r, q.trust * q.trust / (sg2 + q.sd * q.sd + Math.pow(E.objSpeedSd * (t - q.t), 2)), E.motionComp ? o.pos[0] - q.pf[0] : 0, E.motionComp ? o.pos[1] - q.pf[1] : 0]);
+    let x = o.pos[0], y = o.pos[1], H = null;
+    for (let it = 0; it < 8; it++) {
+      let a11 = pi[0], a12 = pi[1], a22 = pi[2], b1 = -(pi[0] * (x - o.pos[0]) + pi[1] * (y - o.pos[1])), b2 = -(pi[1] * (x - o.pos[0]) + pi[2] * (y - o.pos[1]));
+      for (const [bx, by, r, w0, sx, sy] of rd) {
+        const px = x - sx, py = y - sy, dx = px - bx, dy = py - by, d = Math.max(0.2, Math.hypot(dx, dy)), ux = dx / d, uy = dy / d, res = r - d, z = Math.abs(res) * Math.sqrt(w0), w = w0 * (z > E.huber ? E.huber / z : 1);
+        a11 += w * ux * ux; a12 += w * ux * uy; a22 += w * uy * uy; b1 += w * ux * res; b2 += w * uy * res;
+      }
+      const det = a11 * a22 - a12 * a12; if (!(det > 1e-12)) break;
+      const ddx = (a22 * b1 - a12 * b2) / det, ddy = (a11 * b2 - a12 * b1) / det; x += ddx; y += ddy; H = [a11, a12, a22];
+      if (Math.hypot(ddx, ddy) < 1e-3) break;
+    }
+    const R = this.cfg.room; x = Math.min(R.w, Math.max(0, x)); y = Math.min(R.h, Math.max(0, y));
+    if (!H) return { pos: o.pos.slice(), ell: o.ell };
+    /* covariance = H^-1; 90% ellipse (chi2 2 dof = 4.605) */
+    const det = H[0] * H[2] - H[1] * H[1], cxx = H[2] / det, cyy = H[0] / det, cxy = -H[1] / det, tr = cxx + cyy, disc = Math.sqrt(Math.max(0, tr * tr / 4 - (cxx * cyy - cxy * cxy)));
+    const l1 = tr / 2 + disc, l2 = Math.max(1e-4, tr / 2 - disc);
+    return { pos: [x, y], ell: { a: Math.max(0.2, Math.sqrt(4.605 * l1)), b: Math.max(0.15, Math.sqrt(4.605 * l2)), th: 0.5 * Math.atan2(2 * cxy, cxx - cyy) } };
+  }
+}
+if (typeof module !== 'undefined') module.exports = { MovingEstimator };
+/* ===== LOCUS Moving Beacons: fixed vs moving comparison. Needs World (sim.js) + MovingEstimator (estimator.js).
+   Same seed => same object path, same radio noise draws, same estimator seed. Only the beacons' mode differs. ===== */
+function runScenario(cfg, seed, moving, opts = {}) {
+  const C = { ...cfg, beacons: opts.beacons || cfg.beacons, estimator: opts.windowSec == null ? cfg.estimator : { ...cfg.estimator, windowSec: opts.windowSec } };
+  const w = new World(C, seed, { mode: moving ? 'moving' : 'fixed' }), est = new MovingEstimator(C, 11 + seed), dt = 1 / C.tickHz, errs = [];
+  for (let k = 0, n = Math.round(C.compare.seconds * C.tickHz); k < n; k++) {
+    w.step(dt); const bel = {}; w.beacons.forEach(b => bel[b.id] = { x: b.believed[0], y: b.believed[1], sd: b.sd });
+    const o = est.step(w.t, w.measure(), bel, dt);
+    if (o && w.t >= C.compare.warmup) errs.push(Math.hypot(o.pos[0] - w.obj.pos[0], o.pos[1] - w.obj.pos[1]));
+  }
+  return errs;
+}
+const summarise = e => { const s = [...e].sort((a, b) => a - b); return { mean: e.reduce((a, b) => a + b, 0) / e.length, median: s[s.length >> 1], p95: s[Math.floor(s.length * 0.95)], worst: s[s.length - 1], n: e.length }; };
+/* every layout in cfg.compare.layouts, fixed and moving, all seeds. Returns [{layout, fixed, moving}] with summaries.
+   onProgress(fraction) is awaited between runs so a page can repaint. */
+async function compareFixedMoving(cfg, onProgress, opts = {}) {
+  const L = Object.entries(opts.layouts || cfg.compare.layouts), seeds = cfg.compare.seeds, rows = []; let k = 0;
+  for (const [name, beacons] of L) {
+    const F = [], M = [];
+    for (const s of seeds) {
+      F.push(...runScenario(cfg, s, false, { beacons, windowSec: opts.windowSec })); if (onProgress) await onProgress(++k / (L.length * seeds.length * 2));
+      M.push(...runScenario(cfg, s, true, { beacons, windowSec: opts.windowSec })); if (onProgress) await onProgress(++k / (L.length * seeds.length * 2));
+    }
+    rows.push({ layout: name, fixed: summarise(F), moving: summarise(M) });
+  }
+  return rows;
+}
+if (typeof module !== 'undefined') module.exports = { runScenario, compareFixedMoving, summarise };
+
+/* ===== LOCUS Moving Beacons: dashboard (DOM + canvas only; maths lives in motion.js / sim.js / estimator.js) ===== */
+const $ = id => document.getElementById(id);
+const CFG = MB_CONFIG, PAL = ['#2A78D6', '#EB6834', '#1BAF7A', '#E0A000', '#8B5CF6', '#E0508C', '#0E9DBE', '#7A5C3A'];
+const AB = { north: 'N', 'north-east': 'NE', east: 'E', 'south-east': 'SE', south: 'S', 'south-west': 'SW', west: 'W', 'north-west': 'NW' };
+const colOf = id => { const n = parseInt(String(id).replace(/\D/g, ''), 10); return PAL[((isNaN(n) ? String(id).length : n) - 1 + PAL.length) % PAL.length]; };
+const clock = t => { const m = Math.floor(t / 60), s = t - 60 * m; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
+let world, est, trk, out = null, paused = false, errs = [], objTrail = [], bsig = '', drag = null;
+
+function reset() {
+  world = new World(CFG, 1); est = new MovingEstimator(CFG); trk = new MoveTracker(CFG.display);
+  world.beacons.forEach(b => trk.update(b.id, b.believed[0], b.believed[1], 0, true));
+  out = null; errs = []; objTrail = []; bsig = ''; updateUI();
+}
+
+/* ---------- simulation tick: world -> estimator -> movement tracker ---------- */
+function tick(dt) {
+  world.step(dt);
+  const bel = {}; world.beacons.forEach(b => bel[b.id] = { x: b.believed[0], y: b.believed[1], sd: b.sd });
+  out = est.step(world.t, world.measure(), bel, dt);
+  world.beacons.forEach(b => trk.update(b.id, b.believed[0], b.believed[1], world.t, b.mode !== 'moving'));
+  const o = world.obj.pos;
+  if (out) { errs.push({ t: world.t, e: Math.hypot(out.pos[0] - o[0], out.pos[1] - o[1]), pf: Math.hypot(out.pf[0] - o[0], out.pf[1] - o[1]) }); while (errs.length && world.t - errs[0].t > 30) errs.shift(); }
+  const l = objTrail[objTrail.length - 1]; if (!l || Math.hypot(l[0] - o[0], l[1] - o[1]) > 0.1) { objTrail.push(o.slice()); if (objTrail.length > 60) objTrail.shift(); }
+}
+
+/* ---------- external position updates (real phones later): function, postMessage, BroadcastChannel ---------- */
+function update_beacon_position(id, x, y, timestamp) {
+  x = +x; y = +y; if (!Number.isFinite(x) || !Number.isFinite(y)) return { ok: false, error: 'x and y must be numbers (metres)' };
+  const R = CFG.room; x = Math.min(R.w, Math.max(0, x)); y = Math.min(R.h, Math.max(0, y));
+  const b = world.externalUpdate(String(id), x, y, timestamp); if (!b) return { ok: false, error: 'too many beacons (max ' + CFG.maxBeacons + ')' };
+  trk.update(b.id, x, y, world.t, true); updateUI();
+  const s = trk.stats(b.id, world.t), g = s && s.seg && s.seg.live ? s.seg : null;
+  return { ok: true, id: b.id, move: g ? { dist: g.dist, bearing: g.bearing, compass: g.compass, dx: g.dx, dy: g.dy, text: fmtMove(b.id, g) } : null };
+}
+window.update_beacon_position = window.updateBeaconPosition = update_beacon_position;
+addEventListener('message', e => { const d = e.data; if (d && d.type === 'beacon_position') update_beacon_position(d.id, d.x, d.y, d.timestamp); });
+try { new BroadcastChannel('locus-beacons').onmessage = e => { const d = e.data; if (d && d.type === 'beacon_position') update_beacon_position(d.id, d.x, d.y, d.timestamp); }; } catch (e) { }
+
+/* ---------- map ---------- */
+const cv = $('map'), g = cv.getContext('2d'); let S = 40, OX = 0, OY = 0, DPR = 1;
+const X = x => OX + x * S, Y = y => OY + (CFG.room.h - y) * S;   /* y = north = up */
+function fit() {
+  const r = $('mapbox').getBoundingClientRect(); DPR = Math.min(2, devicePixelRatio || 1); cv.width = r.width * DPR; cv.height = r.height * DPR;
+  const pad = 30, W = CFG.room.w, H = CFG.room.h; S = Math.min((r.width - 2 * pad) / W, (r.height - 2 * pad) / H); OX = (r.width - S * W) / 2 + 6; OY = (r.height - S * H) / 2;
+}
+const toW = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left - OX) / S, CFG.room.h - (e.clientY - r.top - OY) / S]; };
+function halo(txt, x, y, col, font) { g.font = font || '700 11.5px Figtree'; g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = 'rgba(255,255,255,.95)'; g.strokeText(txt, x, y); g.fillStyle = col; g.fillText(txt, x, y); }
+function arrow(a, b, col, w, alpha) {
+  const x1 = X(a[0]), y1 = Y(a[1]), x2 = X(b[0]), y2 = Y(b[1]), an = Math.atan2(y2 - y1, x2 - x1), L = Math.hypot(x2 - x1, y2 - y1), h = Math.min(12, L * 0.5);
+  g.save(); g.globalAlpha = alpha; g.strokeStyle = col; g.fillStyle = col; g.lineWidth = w; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2 - Math.cos(an) * h * 0.6, y2 - Math.sin(an) * h * 0.6); g.stroke();
+  g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - h * Math.cos(an - 0.45), y2 - h * Math.sin(an - 0.45)); g.lineTo(x2 - h * Math.cos(an + 0.45), y2 - h * Math.sin(an + 0.45)); g.closePath(); g.fill();
+  g.beginPath(); g.arc(x1, y1, 3.5, 0, 7); g.fill(); g.restore();
+}
+function draw() {
+  const r = $('mapbox').getBoundingClientRect(), W = CFG.room.w, H = CFG.room.h; g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, r.width, r.height);
+  g.fillStyle = '#fff'; g.fillRect(X(0), Y(H), W * S, H * S);
+  g.lineWidth = 1; g.strokeStyle = '#E6F3F7'; for (let x = 1; x < W; x++) { g.beginPath(); g.moveTo(X(x), Y(0)); g.lineTo(X(x), Y(H)); g.stroke(); } for (let y = 1; y < H; y++) { g.beginPath(); g.moveTo(X(0), Y(y)); g.lineTo(X(W), Y(y)); g.stroke(); }
+  g.strokeStyle = '#0E9DBE'; g.lineWidth = 2.2; g.strokeRect(X(0), Y(H), W * S, H * S);
+  g.fillStyle = '#7A9AA6'; g.font = '600 10.5px Figtree'; g.textAlign = 'center'; for (let x = 0; x <= W; x += 2) g.fillText(x + ' m', X(x), Y(0) + 15); g.textAlign = 'right'; for (let y = 0; y <= H; y += 2) g.fillText(y + '', X(0) - 6, Y(y) + 4);
+  /* north arrow */
+  { const nx = X(W) + 14, ny = Y(H) + 6; g.fillStyle = '#0B3A4A'; g.beginPath(); g.moveTo(nx, ny); g.lineTo(nx - 5, ny + 12); g.lineTo(nx + 5, ny + 12); g.closePath(); g.fill(); g.textAlign = 'center'; g.font = '700 10.5px Sora'; g.fillText('N', nx, ny + 24); }
+  const t = world.t, stats = {}, small = S < 34, R0 = small ? 8 : 11; world.beacons.forEach(b => stats[b.id] = trk.stats(b.id, t));
+  /* fading trails */
+  world.beacons.forEach(b => { const s = stats[b.id]; if (!s) return; const tr = s.trail, c = colOf(b.id); for (let i = 1; i < tr.length; i++) { const a = i / tr.length; g.globalAlpha = 0.15 + 0.6 * a; g.strokeStyle = c; g.lineWidth = 2; g.beginPath(); g.moveTo(X(tr[i - 1][0]), Y(tr[i - 1][1])); g.lineTo(X(tr[i][0]), Y(tr[i][1])); g.stroke(); g.beginPath(); g.arc(X(tr[i][0]), Y(tr[i][1]), 2.5, 0, 7); g.fillStyle = c; g.fill(); } g.globalAlpha = 1; });
+  /* links beacon -> estimate (width = trust) */
+  if (out) world.beacons.forEach(b => { const i = out.ids.indexOf(b.id); if (i < 0 || b.dead) return; const q = out.trust[i]; g.globalAlpha = 0.18 + 0.4 * q; g.strokeStyle = colOf(b.id); g.lineWidth = 0.8 + 3 * q; g.setLineDash(out.usable[i] ? [] : [4, 5]); g.beginPath(); g.moveTo(X(b.believed[0]), Y(b.believed[1])); g.lineTo(X(out.pos[0]), Y(out.pos[1])); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; });
+  /* object trail, ellipse, error line, estimate, truth */
+  if (objTrail.length > 1) { g.strokeStyle = 'rgba(11,58,74,.25)'; g.lineWidth = 2; g.beginPath(); objTrail.forEach((p, i) => i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1]))); g.stroke(); }
+  const o = world.obj.pos;
+  if (out) {
+    g.save(); g.translate(X(out.pos[0]), Y(out.pos[1])); g.rotate(-out.ell.th); g.beginPath(); g.ellipse(0, 0, out.ell.a * S, out.ell.b * S, 0, 0, 7); g.fillStyle = 'rgba(16,185,129,.1)'; g.fill(); g.strokeStyle = 'rgba(16,185,129,.7)'; g.lineWidth = 1.5; g.stroke(); g.restore();
+    g.setLineDash([3, 3]); g.strokeStyle = '#EF6A6A'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(o[0]), Y(o[1])); g.lineTo(X(out.pos[0]), Y(out.pos[1])); g.stroke(); g.setLineDash([]);
+    g.beginPath(); g.arc(X(out.pos[0]), Y(out.pos[1]), 7, 0, 7); g.fillStyle = '#10B981'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#fff'; g.stroke();
+  }
+  g.beginPath(); g.arc(X(o[0]), Y(o[1]), 7, 0, 7); g.fillStyle = '#0B3A4A'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#fff'; g.stroke();
+  if (out) { g.textAlign = 'left'; halo('error ' + Math.hypot(out.pos[0] - o[0], out.pos[1] - o[1]).toFixed(2) + ' m', X(o[0]) + 11, Y(o[1]) - 9, '#0B3A4A'); }
+  /* move arrows + labels (live: solid; finished: fade over arrowHoldSec) */
+  world.beacons.forEach(b => {
+    const s = stats[b.id], m = s && s.seg; if (!m || m.dist < CFG.display.threshold) return;
+    const al = m.live ? 1 : Math.max(0, 1 - (t - m.t1) / CFG.display.arrowHoldSec), c = colOf(b.id); if (al <= 0) return;
+    arrow(m.from, m.to, c, 3, al);
+    /* label at the middle of the arrow, beside it; a short arrow gets its label behind the tail so the beacon marker cannot hide it */
+    const fx = X(m.from[0]), fy = Y(m.from[1]), tx = X(m.to[0]), ty = Y(m.to[1]), an = Math.atan2(ty - fy, tx - fx), L = Math.hypot(tx - fx, ty - fy);
+    const [lx, ly] = L > 80 ? [(fx + tx) / 2 - Math.sin(an) * 14, (fy + ty) / 2 + Math.cos(an) * 14] : [fx - Math.cos(an) * 34, fy - Math.sin(an) * 22];
+    g.save(); g.globalAlpha = al; g.textAlign = 'center'; halo(m.dist.toFixed(1) + ' m · ' + (small ? '' : Math.round(m.bearing) + '° ') + AB[m.compass], lx, ly + 4, c, small ? '700 10px Figtree' : null); g.restore();
+  });
+  /* beacons: true position (dashed) and believed position (filled) */
+  world.beacons.forEach(b => {
+    const c = colOf(b.id), bx = X(b.believed[0]), by = Y(b.believed[1]), tx = X(b.truth[0]), ty = Y(b.truth[1]);
+    if (Math.hypot(tx - bx, ty - by) > 1.5 || b.mode === 'moving') { g.setLineDash([3, 3]); g.strokeStyle = '#7A9AA6'; g.lineWidth = 1.5; g.beginPath(); g.arc(tx, ty, 8, 0, 7); g.stroke(); g.setLineDash([]); if (Math.hypot(tx - bx, ty - by) > 1.5) { g.beginPath(); g.moveTo(tx, ty); g.lineTo(bx, by); g.stroke(); } }
+    if (b.mode === 'moving') { g.beginPath(); g.arc(bx, by, R0 + 4, 0, 7); g.strokeStyle = 'rgba(16,185,129,.55)'; g.lineWidth = 2; g.stroke(); }
+    if (drag && drag.id === b.id) { g.beginPath(); g.arc(bx, by, 18, 0, 7); g.strokeStyle = '#0B3A4A'; g.lineWidth = 2; g.stroke(); }
+    g.beginPath(); g.arc(bx, by, R0, 0, 7); g.fillStyle = b.dead ? '#fff' : c; g.fill(); g.lineWidth = 2.5; g.strokeStyle = b.dead ? '#EF6A6A' : '#fff'; g.stroke();
+    if (b.dead) { g.strokeStyle = '#EF6A6A'; g.lineWidth = 2; g.beginPath(); g.moveTo(bx - 5, by - 5); g.lineTo(bx + 5, by + 5); g.moveTo(bx + 5, by - 5); g.lineTo(bx - 5, by + 5); g.stroke(); }
+    else { g.fillStyle = '#fff'; g.font = (small ? '700 8px' : '700 10px') + ' Sora'; g.textAlign = 'center'; g.fillText(b.id, bx, by + (small ? 3 : 3.5)); }
+    if (small && !b.dead) return; const i = out ? out.ids.indexOf(b.id) : -1; g.textAlign = 'center'; halo(b.dead ? 'dead' : i >= 0 ? 'trust ' + out.trust[i].toFixed(2) : '', bx, by + 26, b.dead ? '#C44' : '#3F6572', '600 10.5px Figtree');
+  });
+}
+
+/* ---------- drag a beacon ---------- */
+cv.addEventListener('pointerdown', e => {
+  const p = toW(e); let best = null, bd = 18 / S; world.beacons.forEach(b => { const d = Math.hypot(b.believed[0] - p[0], b.believed[1] - p[1]); if (d < bd) { bd = d; best = b; } });
+  if (!best) return; drag = best; best.held = true; cv.setPointerCapture(e.pointerId); e.preventDefault();
+});
+cv.addEventListener('pointermove', e => {
+  const p = toW(e), R = CFG.room;
+  if (!drag) { cv.style.cursor = world.beacons.some(b => Math.hypot(b.believed[0] - p[0], b.believed[1] - p[1]) < 18 / S) ? 'grab' : 'crosshair'; return; }
+  world.dragBeacon(drag.id, Math.min(R.w, Math.max(0, p[0])), Math.min(R.h, Math.max(0, p[1]))); trk.update(drag.id, drag.believed[0], drag.believed[1], world.t, drag.mode !== 'moving'); cv.style.cursor = 'grabbing'; updateUI();
+});
+const endDrag = () => { if (drag) { drag.held = false; drag = null; } };
+cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+
+/* ---------- side panel ---------- */
+function buildBeacons() {
+  bsig = world.beacons.map(b => b.id + b.mode + b.dead).join();
+  $('bl').innerHTML = world.beacons.map(b => `<div class="bc${b.dead ? ' dead' : b.mode === 'moving' ? ' mv' : ''}" data-id="${b.id}">
+    <div class="top"><span class="sq" style="background:${colOf(b.id)}"></span><b>${b.id}</b>${b.mode === 'external' ? '<span class="note">external updates</span>' : ''}<div class="mini"><button data-m="fixed" aria-pressed="${b.mode === 'fixed'}">Fixed</button><button data-m="moving" aria-pressed="${b.mode === 'moving'}">Moving</button></div>
+      <span class="acts"><button data-a="kill" aria-pressed="${b.dead}">${b.dead ? 'Revive' : 'Kill'}</button><button data-a="rm">Remove</button></span></div>
+    <div class="g"><div>believed (x, y)<b class="pb">–</b></div><div>true (x, y)<b class="pt">–</b></div><div>trust<b class="tr">–</b></div><div>total moved<b class="tt">–</b></div><div>last ${CFG.display.recentSec} s<b class="rc">–</b></div><div>speed<b class="spd">–</b></div></div>
+    <div class="lm">–</div></div>`).join('');
+  $('b-add').disabled = world.beacons.length >= CFG.maxBeacons;
+}
+$('bl').addEventListener('click', e => {
+  const btn = e.target.closest('button'), el = btn && btn.closest('.bc'); if (!el) return; const b = world.get(el.dataset.id); if (!b) return;
+  if (btn.dataset.m) world.setMode(b.id, btn.dataset.m);
+  else if (btn.dataset.a === 'kill') b.dead = !b.dead;
+  else if (btn.dataset.a === 'rm' && world.beacons.length > 1) { world.removeBeacon(b.id); trk.reset(b.id); }
+  updateUI();
+});
+function updateUI() {
+  if (!world) return; const t = world.t;
+  if (bsig !== world.beacons.map(b => b.id + b.mode + b.dead).join()) buildBeacons();
+  const cards = $('bl').children;
+  world.beacons.forEach((b, k) => {
+    const el = cards[k], s = trk.stats(b.id, t); if (!el || !s) return; const i = out ? out.ids.indexOf(b.id) : -1, q = i >= 0 ? out.trust[i] : null;
+    el.querySelector('.pb').textContent = b.believed[0].toFixed(2) + ', ' + b.believed[1].toFixed(2) + (b.sd ? ' ±' + b.sd.toFixed(2) : '');
+    el.querySelector('.pt').textContent = b.truth[0].toFixed(2) + ', ' + b.truth[1].toFixed(2);
+    el.querySelector('.tr').textContent = q == null ? '–' : q.toFixed(2) + (out.reasons[i] && q < 0.7 ? ' ⚠' : ''); el.querySelector('.tr').title = i >= 0 ? out.reasons[i] || '' : '';
+    el.querySelector('.tt').textContent = s.total.toFixed(1) + ' m'; el.querySelector('.rc').textContent = s.recent.toFixed(1) + ' m'; el.querySelector('.spd').textContent = s.speed.toFixed(2) + ' m/s';
+    const last = trk.log.find(m => m.id === b.id), n = out && out.perBeacon[b.id] || 0;
+    el.querySelector('.lm').textContent = n + ' readings in window · ' + (last ? (last.live ? 'moving: ' : 'last move: ') + last.dist.toFixed(1) + ' m toward ' + Math.round(last.bearing) + '° ' + AB[last.compass] : 'has not moved');
+    el.querySelector('.lm').title = last ? fmtMove(b.id, last) : '';
+  });
+  /* banner = newest move */
+  const m = trk.log[0], bn = $('banner');
+  if (m) { bn.className = 'banner' + (m.live ? ' live' : ''); bn.firstElementChild.style.background = colOf(m.id); $('banner-t').textContent = fmtMove(m.id, m) + (m.live ? ' · moving…' : ' · at ' + clock(m.t1)); }
+  /* log */
+  $('log').innerHTML = trk.log.slice(0, 80).map(q => `<tr class="${q.live ? 'live' : ''}"><td>${clock(q.t0)}</td><td><span class="sq" style="background:${colOf(q.id)}"></span>${q.id}</td><td><b>${q.dist.toFixed(2)} m</b>${q.live ? ' …' : ''}</td><td>${Math.round(q.bearing)}° ${q.compass}</td><td>dx ${sgn(q.dx)}, dy ${sgn(q.dy)}</td></tr>`).join('') || '<tr><td colspan="5" class="note">No moves yet.</td></tr>';
+  $('n-log').textContent = trk.log.length + ' moves · threshold ' + CFG.display.threshold.toFixed(2) + ' m';
+  /* KPIs */
+  if (out) {
+    const o = world.obj.pos, e = Math.hypot(out.pos[0] - o[0], out.pos[1] - o[1]), pe = Math.hypot(out.pf[0] - o[0], out.pf[1] - o[1]);
+    $('k-err').textContent = e.toFixed(2) + ' m'; $('k-err2').textContent = 'particle filter alone ' + pe.toFixed(2) + ' m';
+    const me = errs.reduce((a, q) => a + q.e, 0) / Math.max(1, errs.length), wo = errs.reduce((a, q) => Math.max(a, q.e), 0); $('k-mean').textContent = me.toFixed(2) + ' m'; $('k-worst').textContent = 'worst ' + wo.toFixed(2) + ' m';
+    $('k-win').textContent = out.window; $('k-win2').textContent = 'last ' + CFG.estimator.windowSec + ' s, ' + Object.values(out.perBeacon).filter(Boolean).length + ' beacons';
+    const use = out.usable.filter(Boolean).length, nd = world.beacons.filter(b => b.dead).length; $('k-use').textContent = use + ' / ' + out.ids.length; $('k-use2').textContent = nd ? nd + ' dead' : 'all alive';
+    $('k-ell').textContent = '± ' + out.ell.a.toFixed(2) + ' m';
+  }
+  $('p-run').className = 'pill ' + (paused ? 'warn' : 'ok'); $('p-run').lastElementChild.textContent = (paused ? 'Paused · ' : 'Running · ') + Math.floor(t) + ' s';
+}
+
+/* ---------- controls ---------- */
+const path = k => { const [a, b] = k.split('.'); return [CFG[a], b]; };
+function sliderText(inp) { const [o, k] = path(inp.dataset.k), v = o[k]; inp.previousElementSibling.textContent = inp.dataset.u === '%' ? Math.round(v * 100) + '%' : v + inp.dataset.u; }
+document.querySelectorAll('input[data-k]').forEach(inp => { const [o, k] = path(inp.dataset.k); inp.value = o[k]; sliderText(inp); inp.oninput = () => { o[k] = +inp.value; sliderText(inp); if (inp.dataset.k.startsWith('report')) world.beacons.forEach(b => { if (b.mode === 'moving') b.sd = world.repSd(); }); updateUI(); }; });
+$('b-pause').onclick = () => { paused = !paused; $('b-pause').textContent = paused ? 'Resume' : 'Pause'; updateUI(); };
+$('b-reset').onclick = reset;
+$('b-add').onclick = () => { const R = CFG.room, b = world.addBeacon(1 + Math.random() * (R.w - 2), 1 + Math.random() * (R.h - 2), 'fixed'); if (b) trk.update(b.id, b.believed[0], b.believed[1], world.t, true); updateUI(); };
+$('b-allmv').onclick = () => { world.beacons.forEach(b => world.setMode(b.id, 'moving')); updateUI(); };
+$('b-allfx').onclick = () => { world.beacons.forEach(b => world.setMode(b.id, 'fixed')); updateUI(); };
+$('b-clearlog').onclick = () => { trk.log.length = 0; updateUI(); };
+$('n-cmpcfg').textContent = CFG.compare.seeds.length + ' seeds × ' + CFG.compare.seconds + ' s per run, with the current noise settings.';
+$('b-cmp').onclick = async () => {
+  const bt = $('b-cmp'), pr = $('cmp-prog'); bt.disabled = true; pr.style.display = 'block'; $('cmp-out').innerHTML = '';
+  const rows = await compareFixedMoving(CFG, async f => { pr.firstElementChild.style.width = (f * 100).toFixed(0) + '%'; await new Promise(r => setTimeout(r, 0)); });
+  setRoom(CFG.room.w, CFG.room.h, []);
+  const pct = (m, f) => { const d = (m - f) / f * 100; return `<td class="${d < -2 ? 'good' : d > 2 ? 'bad' : ''}">${d > 0 ? '+' : ''}${d.toFixed(0)}%</td>`; };
+  const better = rows.filter(r => r.moving.mean < r.fixed.mean * 0.98).length;
+  $('cmp-out').innerHTML = `<table><thead><tr><th>Layout</th><th>Fixed mean / worst</th><th>Moving mean / worst</th><th>Mean change</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r.layout}</td><td>${r.fixed.mean.toFixed(2)} / ${r.fixed.worst.toFixed(2)} m</td><td>${r.moving.mean.toFixed(2)} / ${r.moving.worst.toFixed(2)} m</td>${pct(r.moving.mean, r.fixed.mean)}</tr>`).join('')}</tbody></table>
+    <div class="note" style="margin-top:8px"><b>Moving beacons lowered the mean error in ${better} of ${rows.length} layouts.</b> Moving helps most when the fixed layout is weak (two beacons: the position along their line is poorly constrained, and a moving beacon adds new angles). When fixed beacons already surround the object, moving adds little: the multipath bias near one spot stays correlated over the 1-2 m a beacon walks in a few seconds, and a moving beacon's own reported position is uncertain (noise + drift), which costs accuracy.</div>`;
+  pr.style.display = 'none'; bt.disabled = false; window.__mbCompare = rows;
+};
+
+/* ---------- main loop ---------- */
+let acc = 0, lastT = performance.now(), lastUI = 0;
+function loop(now) {
+  const dt = Math.min(0.25, (now - lastT) / 1000); lastT = now;
+  if (!paused) { acc += dt; const h = 1 / CFG.tickHz; while (acc >= h) { acc -= h; tick(h); } }
+  draw(); if (now - lastUI > 200) { lastUI = now; updateUI(); }
+  requestAnimationFrame(loop);
+}
+addEventListener('resize', fit);
+reset(); fit(); requestAnimationFrame(loop);
+window.__mb = { get world() { return world; }, get est() { return est; }, get trk() { return trk; }, get out() { return out; }, CFG, tick, reset, update_beacon_position, updateUI, draw, screen: (x, y) => { const r = cv.getBoundingClientRect(); return [r.left + X(x), r.top + Y(y)]; } };
+
+</script>
+</body>
+</html>

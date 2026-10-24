@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LOCUS · Moving Beacons</title>
+<meta name="theme-color" content="#22C3E6">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --aqua:#22C3E6; --aqua-d:#0E9DBE; --aqua-l:#BFE9F3; --aqua-xl:#E6F8FC;
+  --em:#10B981; --em-d:#0B8A5E; --em-dd:#0A6B49; --em-l:#DDF6EA;
+  --ink:#0B3A4A; --ink2:#3F6572; --ink3:#7A9AA6; --bg:#F4FCFE; --card:#FFFFFF; --line:#CDEBF3;
+  --amber:#F5A524; --amber-l:#FFF1D6; --coral:#EF6A6A; --coral-l:#FFE3E3; --violet:#8B5CF6;
+  --grad:linear-gradient(135deg,#22C3E6 0%,#10B981 100%); --shadow:0 10px 28px rgba(34,195,230,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Figtree',system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden;
+  background-image:radial-gradient(900px 400px at 85% -100px,rgba(34,195,230,.18),transparent 70%),radial-gradient(700px 380px at 0% 0%,rgba(16,185,129,.12),transparent 70%);background-repeat:no-repeat}
+h1,h2,h3{font-family:'Sora',sans-serif}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
+header{position:sticky;top:0;z-index:50;background:rgba(244,252,254,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;max-width:1500px;margin:0 auto;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Sora';font-weight:700;letter-spacing:.12em}
+.logo small{font-weight:600;letter-spacing:.04em;color:var(--em-dd);background:var(--em-l);padding:3px 9px;border-radius:99px;font-size:12px}
+.hl{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink2);text-decoration:none;white-space:nowrap}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--ink3);display:inline-block}.pill.ok i{background:var(--em);box-shadow:0 0 0 3px rgba(16,185,129,.2)}.pill.warn i{background:var(--amber)}
+a.pill:hover{border-color:var(--em);color:var(--em-dd)}
+.layout{display:grid;gap:14px;padding:14px 16px 28px;max-width:1500px;margin:0 auto;grid-template-columns:1fr}
+@media(min-width:1050px){.layout{grid-template-columns:minmax(0,1fr) 430px;align-items:start}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{font-size:16px}.card h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.note{font-size:12.5px;line-height:1.45;color:var(--ink2)}.note b{color:var(--ink)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{height:34px;padding:0 13px;border-radius:99px;border:1.5px solid var(--aqua-l);background:#fff;font-weight:700;font-size:13px;color:var(--ink)}
+.btn:hover{border-color:var(--em)}.btn.pri{background:var(--grad);border:0;color:#fff;box-shadow:0 6px 16px rgba(16,185,129,.28)}.btn:disabled{opacity:.45;cursor:default}
+.btn[aria-pressed=true]{background:var(--coral-l);border-color:var(--coral);color:#b13a3a}
+.mapbox{position:relative;width:100%;aspect-ratio:13/9;touch-action:none}
+.mapbox canvas{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair}
+.banner{border-radius:14px;padding:10px 12px;background:var(--aqua-xl);font-size:14px;font-weight:600;min-height:44px;display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums}
+.banner .sq{width:12px;height:12px;border-radius:4px;flex:none}.banner.live{background:var(--em-l);color:var(--em-dd)}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.kpis>div{background:var(--aqua-xl);border-radius:14px;padding:8px 10px;min-width:0}.kpis small{display:block;font-size:11px;font-weight:700;color:var(--ink3)}.kpis b{font:700 18px Sora;font-variant-numeric:tabular-nums}.kpis span{display:block;font-size:11px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;font-weight:600;color:var(--ink2)}.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.fld{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--ink2);flex:1 1 170px;min-width:0}.fld span.v{float:right;color:var(--ink)}.fld input{width:100%;accent-color:var(--em)}
+.bl{display:flex;flex-direction:column;gap:8px}
+.bc{border:1.5px solid var(--line);border-radius:14px;padding:9px 10px;display:flex;flex-direction:column;gap:5px}.bc.dead{border-color:var(--coral);background:#FFF8F8}.bc.mv{border-color:var(--em)}
+.bc .top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.bc .sq{width:12px;height:12px;border-radius:4px}.bc .top b{font:700 14px Sora}
+.mini{display:flex;border:1px solid var(--line);border-radius:99px;padding:2px;gap:2px}.mini button{height:24px;padding:0 9px;border-radius:99px;font-size:11.5px;font-weight:700;color:var(--ink2)}.mini button[aria-pressed=true]{background:var(--grad);color:#fff}
+.bc .acts{margin-left:auto;display:flex;gap:4px}.bc .acts button{height:26px;padding:0 9px;border-radius:99px;border:1.5px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink2);background:#fff}.bc .acts button[aria-pressed=true]{background:var(--coral-l);border-color:var(--coral);color:#b13a3a}
+.bc .g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px 8px;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}.bc .g b{display:block;color:var(--ink);font-size:13px}
+.bc .lm{font-size:12px;color:var(--ink2);min-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log{max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:12px}
+.log table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}.log th{position:sticky;top:0;background:var(--aqua-xl);text-align:left;font-size:11px;color:var(--ink3);padding:6px 8px}.log td{padding:5px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.log tr.live td{background:var(--em-l)}.log .sq{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.cmp table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}.cmp th{text-align:left;font-size:11px;color:var(--ink3);padding:5px 6px;border-bottom:1px solid var(--line)}.cmp td{padding:6px;border-bottom:1px solid var(--line)}.cmp td.good{color:var(--em-dd);font-weight:700}.cmp td.bad{color:#b13a3a;font-weight:700}
+.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;width:0;background:var(--grad)}
+</style>
+</head>
+<body>
+<header><div class="hrow">
+  <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C3E6"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><path d="M16 2c-5.5 0-10 4.4-10 9.8C6 19 16 30 16 30s10-11 10-18.2C26 6.4 21.500 2 16 2z" fill="url(#lg)"/><circle cx="16" cy="12" r="4" fill="#fff"/></svg>LOCUS <small>Moving beacons</small></div>
+  <div class="hl"><span class="pill ok" id="p-run"><i></i><span>Running · 0 s</span></span><a class="pill" href="dashboard.html">Dashboard</a><a class="pill" href="./">Home</a></div>
+</div></header>
+
+<div class="layout">
+  <div class="col">
+    <section class="card" aria-label="Floor map">
+      <div class="banner" id="banner"><span class="sq"></span><span id="banner-t">No beacon has moved yet. Drag one, or switch it to Moving.</span></div>
+      <div class="mapbox" id="mapbox"><canvas id="map" aria-label="Floor map: beacons, their moves, the tracked object and the estimate. Drag a beacon to move it."></canvas></div>
+      <div class="legend"><span><i style="background:#0B3A4A"></i>Object (true)</span><span><i style="background:#10B981"></i>Estimate + 90% ellipse</span><span><i style="background:#fff;border:2px dashed #7A9AA6"></i>Beacon true position</span><span><i style="background:#2A78D6"></i>Beacon (believed) + trail + last move arrow</span></div>
+      <div class="kpis">
+        <div><small>Live error</small><b id="k-err">–</b><span id="k-err2">–</span></div>
+        <div><small>Mean error (30 s)</small><b id="k-mean">–</b><span id="k-worst">–</span></div>
+        <div><small>Readings in window</small><b id="k-win">–</b><span id="k-win2">–</span></div>
+        <div><small>Beacons usable</small><b id="k-use">–</b><span id="k-use2">–</span></div>
+        <div><small>Uncertainty (90%)</small><b id="k-ell">–</b><span>long half-axis</span></div>
+      </div>
+    </section>
+    <section class="card" aria-label="Movement log">
+      <div class="row"><h2>Movement log</h2><span class="note" id="n-log">One line per move. Moves smaller than the threshold are ignored.</span><button class="btn" id="b-clearlog" style="margin-left:auto">Clear</button></div>
+      <div class="log"><table><thead><tr><th>Time</th><th>Beacon</th><th>Distance</th><th>Direction</th><th>dx, dy</th></tr></thead><tbody id="log"></tbody></table></div>
+    </section>
+  </div>
+
+  <aside class="col">
+    <section class="card" aria-label="Simulation controls">
+      <div class="row"><button class="btn pri" id="b-pause">Pause</button><button class="btn" id="b-reset">Reset</button><button class="btn" id="b-add">Add beacon</button><button class="btn" id="b-allmv">All moving</button><button class="btn" id="b-allfx">All fixed</button></div>
+      <div class="row">
+        <label class="fld">Range noise σ <span class="v" id="v-sigma"></span><input type="range" id="i-sigma" min="0" max="1.5" step="0.05" data-k="radio.sigma" data-u=" m"></label>
+        <label class="fld">Multipath bias <span class="v" id="v-shadow"></span><input type="range" id="i-shadow" min="0" max="2" step="0.1" data-k="radio.shadowSd" data-u=" m"></label>
+        <label class="fld">Packet loss <span class="v" id="v-loss"></span><input type="range" id="i-loss" min="0" max="0.6" step="0.05" data-k="radio.loss" data-u="%"></label>
+        <label class="fld">Beacon position noise <span class="v" id="v-pn"></span><input type="range" id="i-pn" min="0" max="0.5" step="0.01" data-k="report.noise" data-u=" m"></label>
+        <label class="fld">Beacon position drift <span class="v" id="v-dr"></span><input type="range" id="i-dr" min="0" max="0.1" step="0.005" data-k="report.driftRate" data-u=" m/√s"></label>
+        <label class="fld">Beacon walking speed <span class="v" id="v-sp"></span><input type="range" id="i-sp" min="0.1" max="1.5" step="0.05" data-k="motion.speed" data-u=" m/s"></label>
+        <label class="fld">Movement threshold <span class="v" id="v-thr"></span><input type="range" id="i-thr" min="0.02" max="1" step="0.01" data-k="display.threshold" data-u=" m"></label>
+        <label class="fld">Reading window <span class="v" id="v-win"></span><input type="range" id="i-win" min="0" max="15" step="0.5" data-k="estimator.windowSec" data-u=" s"></label>
+      </div>
+      <div class="note">All defaults live in <b>src/moving/config.js</b>. Drag a beacon on the map to move it. External position updates: <b>update_beacon_position(id, x, y, timestamp)</b> (see README).</div>
+    </section>
+    <section class="card" aria-label="Beacons">
+      <h3>Beacons</h3>
+      <div class="bl" id="bl"></div>
+    </section>
+    <section class="card cmp" aria-label="Fixed vs moving comparison">
+      <div class="row"><h2>Does moving help?</h2><button class="btn pri" id="b-cmp" style="margin-left:auto">Run comparison</button></div>
+      <div class="note">Same object path, same radio noise, same estimator for every pair; only the beacons' mode differs. <span id="n-cmpcfg"></span></div>
+      <div class="prog" id="cmp-prog" style="display:none"><i></i></div>
+      <div id="cmp-out"></div>
+    </section>
+  </aside>
+</div>
+<script>
+/*__ENGINE__*/
+/*__MOVING__*/
+/*__APP__*/
+</script>
+</body>
+</html>

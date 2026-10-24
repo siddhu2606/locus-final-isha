@@ -1,0 +1,223 @@
+
+/* ---- LOCUS ISHA additions ---- */
+.rail{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 16px 10px;max-width:1500px;margin:0 auto}
+.rail a{flex:0 0 auto;text-decoration:none;font-size:13px;font-weight:700;color:var(--ink2);background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 13px;display:flex;gap:7px;align-items:center}
+.rail a i{font-style:normal;font-size:11px;color:var(--ink3);font-weight:700}.rail a:hover{border-color:var(--em);color:var(--em-dd)}
+.sec{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0;scroll-margin-top:110px}
+.sec h2{font:700 18px Sora}.eyebrow{font:700 11px Sora;letter-spacing:.14em;text-transform:uppercase;color:var(--em-dd)}
+.flag{border-radius:14px;padding:11px 13px;font-size:13.5px;display:flex;gap:10px;align-items:flex-start;line-height:1.45}
+.flag .tag{font:700 10.5px Sora;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.7)}
+.flag.ok{background:var(--em-l);color:var(--em-dd)}.flag.alert{background:var(--amber-l);color:#7a5200;border:1.5px solid var(--amber)}.flag.fault{background:var(--coral-l);color:#a03434;border:1.5px solid var(--coral)}
+.alog{font:12.5px/1.6 ui-monospace,Consolas,monospace;color:var(--ink2);max-height:170px;overflow:auto;display:flex;flex-direction:column;gap:1px}.alog b{color:var(--ink);font-weight:600}.alog div.flag{all:unset;display:block;color:#8a5a00}.alog div.repair{color:#b13a3a}.alog div.ok{color:var(--em-dd)}
+.g2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}@media(max-width:900px){.g2{grid-template-columns:minmax(0,1fr)}}
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}@media(max-width:760px){.pipe{grid-template-columns:minmax(0,1fr)}.gate{min-height:0}}
+.gate{background:#fff;border:2px solid var(--line);border-radius:14px;padding:11px;min-height:150px;display:flex;flex-direction:column;gap:5px;transition:border-color .25s,box-shadow .25s,background .25s}
+.gate small{font:700 10.5px Sora;letter-spacing:.08em;color:var(--ink3);text-transform:uppercase}.gate b{font:700 16px Sora;line-height:1.2}.gate p{margin:0;font-size:12.5px;color:var(--ink2);line-height:1.4}
+.gate .res{font:700 12px ui-monospace,Consolas,monospace;margin-top:auto;color:var(--ink3)}
+.gate.pass{border-color:var(--em)}.gate.pass .res{color:var(--em-dd)}.gate.fail{border-color:var(--coral)}.gate.fail .res{color:#b13a3a}
+.gate.active{border-color:var(--amber);box-shadow:0 0 0 4px rgba(245,165,36,.2)}.gate.answer{background:var(--em-l)}.gate.answer.fail{background:var(--coral-l)}
+.ctl{display:flex;flex-direction:column;gap:10px;min-width:0}.ctl h4{font:700 11px Sora;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:-4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip2,.chips .chip{height:34px;padding:0 12px;border-radius:99px;border:1.5px solid var(--line);font-size:13px;font-weight:700;color:var(--ink2);background:#fff;box-shadow:none;display:inline-flex;align-items:center}
+.chips .chip[aria-pressed=true]{background:var(--em);border-color:var(--em);color:#fff}
+.audit{width:100%;font-size:12.5px}.audit td,.audit th{white-space:nowrap}.audit tr.deny td:last-child{color:#b13a3a;font-weight:700}.audit tr.flagged td{background:var(--amber-l)}.audit tr.flagged td:last-child{color:#8a5a00}
+.ob{display:inline-grid;place-items:center;min-width:30px;height:20px;border-radius:6px;color:#fff;font:700 10px Figtree;padding:0 4px}
+#objs tr{cursor:pointer}#objs tr.foc td{background:var(--amber-l)}#objs .bad{color:#b13a3a;font-weight:700}
+.mini{height:26px;padding:0 10px;border-radius:99px;border:1.5px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink2);background:#fff}.mini[aria-pressed=true]{background:var(--amber-l);border-color:var(--amber);color:#8a5a00}
+.mvb{margin-left:6px;height:24px;padding:0 10px;border-radius:99px;border:1.5px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink2);background:#fff}.mvb[aria-pressed=true]{background:#EFE9FE;border-color:var(--violet);color:#5b34c4}.mvb:disabled{opacity:.4}
+.banner{background:#F5F1FF;border:1.5px solid #D9CCFB;color:#4b2aa8;border-radius:12px;padding:8px 11px;font-size:12.5px;font-weight:600;line-height:1.4}
+.isha{display:flex;flex-direction:column;gap:8px}.isha form{display:flex;gap:6px}.isha input{flex:1;height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-size:13.5px;min-width:0}
+.isha-a{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}.isha-a .q{align-self:flex-end;background:var(--aqua-xl);border-radius:12px 12px 2px 12px;padding:6px 10px;font-size:12.5px;font-weight:600}.isha-a .a{background:var(--em-l);color:var(--em-dd);border-radius:12px 12px 12px 2px;padding:7px 10px;font-size:13px;line-height:1.4}
+.codein{display:flex;gap:6px}.codein input{flex:1;min-width:0;height:44px;border:1.5px solid var(--aqua-l);border-radius:12px;text-align:center;font:700 22px Sora;letter-spacing:.3em}
+.bt th:nth-child(1){width:30px}.bt th:nth-child(2){width:24px}.bt th:nth-child(3),.bt th:nth-child(4){width:46px}.bt th:nth-child(5){width:42px}.bt th:nth-child(6){width:56px}.bt th:nth-child(7){width:54px}.bt th:nth-child(9){width:46px}.bt input[type=number]{width:100%;padding:0 2px;-moz-appearance:textfield;appearance:textfield;text-align:center}.bt input::-webkit-inner-spin-button,.bt input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.bt .cal{width:44px;padding:0 2px}
+</style>
+</head>
+<body>
+<header><div class="hrow">
+  <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C3E6"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><path d="M16 2c-5.5 0-10 4.4-10 9.8C6 19 16 30 16 30s10-11 10-18.2C26 6.4 21.500 2 16 2z" fill="url(#lg)"/><circle cx="16" cy="12" r="4" fill="#fff"/></svg>LOCUS <small>ISHA dashboard</small></div>
+  <div class="hl"><span class="pill" id="p-src"><i></i><span>Demo · auto loop</span></span><span class="pill" id="p-mode"><i></i><span>Simulated radio</span></span><a class="pill" href="phone.html">Phone app</a><a class="pill" href="./">Home</a></div>
+</div>
+<nav class="rail" aria-label="Sections"><a href="#live"><i>01</i>Live 3D</a><a href="#trust"><i>02</i>Trust scorer</a><a href="#alerts"><i>03</i>Off radar + self-check</a><a href="#access"><i>04</i>Access · 3 gates</a><a href="#panel" data-tab="objects"><i>05</i>Objects + ISHA</a><a href="#panel" data-tab="space"><i>06</i>Moving beacons</a><a href="moving.html"><i>07</i>Moving lab</a></nav></header>
+
+<div class="layout">
+  <div class="lcol">
+  <section class="stage" id="live" aria-label="3D floor view" style="scroll-margin-top:110px">
+    <canvas id="cv" aria-label="3D view of the floor, beacons, tracked tag and tagged objects"></canvas>
+    <div class="vbar">
+      <div class="seg" id="views"><button data-v="top" aria-pressed="true">Top</button><button data-v="iso" aria-pressed="false">3D</button><button data-v="side" aria-pressed="false">Side</button></div>
+      <div class="tiltbox">Tilt <input type="range" id="tilt" min="8" max="90" value="90" aria-label="Camera tilt"><span id="tiltv">90°</span></div>
+      <div class="tiltbox">Turn <input type="range" id="yaw" min="-180" max="180" value="0" aria-label="Camera rotation"><span id="yawv">0°</span></div>
+    </div>
+    <div class="legend">
+      <label><i style="background:#0B3A4A"></i><input type="checkbox" id="L-truth" checked hidden>Tag (truth)</label>
+      <label><i style="background:#10B981"></i><input type="checkbox" id="L-locus" checked hidden>LOCUS</label>
+      <label><i style="background:#F5A524"></i><input type="checkbox" id="L-ls" hidden>Plain trilateration</label>
+      <label><i style="background:#8B5CF6"></i><input type="checkbox" id="L-kf" hidden>Kalman</label>
+      <label><i style="background:#22C3E6"></i><input type="checkbox" id="L-pt" checked hidden>Particles</label>
+      <label><i style="background:#2A78D6;border-radius:3px"></i><input type="checkbox" id="L-obj" checked hidden>Objects</label>
+      <label><i style="background:#9fe3c9"></i><input type="checkbox" id="L-links" checked hidden>Self-check links</label>
+    </div>
+    <div class="joy" id="joy"><b id="joyk"></b></div>
+    <div class="hud">
+      <div class="chip">LOCUS error<b id="h-err">–</b></div>
+      <div class="chip">Plain trilateration<b id="h-ls">–</b></div>
+      <div class="chip">Height (est · true)<b id="h-z">–</b></div>
+      <div class="chip">Beacons heard<b id="h-n">–</b></div>
+    </div>
+  </section>
+
+  <section class="trust" id="trust" aria-label="Trust scorer" style="scroll-margin-top:110px">
+    <div class="trh"><div><h2>Trust scorer · rules + ML</h2><div class="note">Every reading from every beacon gets a trust score from 0 to 1. The position fix weights each beacon by trust², so a bad beacon is out-voted instead of dragging the dot.</div></div>
+      <div class="seg" id="scorer"><button data-sc="rules" aria-pressed="false">Rules</button><button data-sc="ml" aria-pressed="false">ML</button><button data-sc="fused" aria-pressed="true">Rules + ML</button></div></div>
+    <div class="trk"><div><small>Usable this reading</small><b id="t-use">–</b><span id="t-use2">–</span></div><div><small>Lowest trust</small><b id="t-low">–</b><span id="t-low2">–</span></div><div><small>Uncertainty (90%)</small><b id="t-ell">–</b><span>long half-axis of the ellipse</span></div><div><small>LOCUS vs trilateration</small><b id="t-err">–</b><span id="t-err2">–</span></div></div>
+    <div class="shw"><small>Share of the position fix <span>(weight = trust²)</span></small><div class="sharebar" id="share"></div></div>
+    <div class="tcards" id="tcards"></div>
+    <div class="trow"><h3>Trust over the last 20 s</h3><div class="tleg" id="tleg"></div></div>
+    <div class="tbox" id="tbox"><canvas id="trace" aria-label="Trust of each beacon over the last 20 seconds"></canvas><div class="ttip" id="ttip" hidden></div></div>
+    <div class="note" id="n-ml"></div>
+    <details class="rules"><summary>How the score is computed, and what happens when a beacon dies</summary>
+<pre class="formula">rules       raw_r = tR · tJ · √tV          residual · jump · variance checks, each 0 to 1
+ML          raw_m = LightGBM probability that the reading is clean (14 features)
+rules + ML  raw   = (raw_r + raw_m) / 2,   or min(raw_r, raw_m) when either is below 0.25
+every reading     trust = 0.55 · trust_prev + 0.45 · raw
+no reading        trust = trust_prev − 0.8 · dt        about 1.2 s from 1 to 0
+position fix      weight_i = trust_i²       share_i = weight_i / Σ weight</pre>
+      <ul>
+        <li><b>The dead beacon:</b> its trust falls by 0.08 per missed reading, so it is ignored after about a second. One lost packet is normal, so it is not cut instantly.</li>
+        <li><b>The other beacons keep their trust</b>: what changes is their <b>share of the vote</b>.</li>
+        <li><b>The cost shows in the uncertainty</b>: the ellipse grows, more when the lost beacon was the one closest to the tag.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section class="sec" id="alerts" aria-label="Off radar and self-check">
+    <div><div class="eyebrow">Off radar + self-check</div><h2>Tag goes quiet → flag. Beacon goes quiet → repair alert.</h2></div>
+    <div id="al-flag" class="flag ok"><span class="tag">Status</span><span>Starting…</span></div>
+    <div class="g2">
+      <div class="ctl">
+        <div class="kpis"><div class="kpi g"><small>Beacons healthy</small><b id="al-b">–</b></div><div class="kpi"><small>Tags on radar</small><b id="al-t">–</b></div><div class="kpi"><small>Tracked tag</small><b id="al-h">–</b></div></div>
+        <div class="row"><button class="btn sm" id="b-shield" aria-pressed="false">Shield the tag</button><span class="note">Kill a beacon from its trust card above. Shield any object in the <b>Objects</b> tab.</span></div>
+        <div class="note">A tag silent to every beacon for 3 s raises a flag to its point of contact with the last zone, time and trail. Beacons also hear each other: one silent to all the others for 3 s is reported for repair, while tracking carries on with the rest.</div>
+      </div>
+      <div class="ctl"><h4>Event log</h4><div class="alog" id="al-log"></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="access" aria-label="Access gates">
+    <div><div class="eyebrow">Who may see a location</div><h2>Every request passes three gates</h2><div class="note">Pick who is asking and from which phone, then send. The answer uses the live position of patient P-112. Requests from staff phones (ISHA) land here too.</div></div>
+    <div class="pipe">
+      <div class="gate" id="g0"><small>Request</small><b>Where is patient P-112?</b><p>Tagged wristband, Ward B bed 12.</p><span class="res" id="g0r">waiting</span></div>
+      <div class="gate" id="g1"><small>Gate 1</small><b>Role</b><p>Admin and Ward B nurses may ask about Ward B. Guards see exits only.</p><span class="res" id="g1r">–</span></div>
+      <div class="gate" id="g2"><small>Gate 2</small><b>Staff + device</b><p>A registered phone that LOCUS itself places inside the hospital.</p><span class="res" id="g2r">–</span></div>
+      <div class="gate" id="g3"><small>Gate 3</small><b>Point of contact</b><p>Only the patient's POC gets the room. Others get "in building".</p><span class="res" id="g3r">–</span></div>
+      <div class="gate answer" id="g4"><small>Answer</small><b id="ans">–</b><p>A zone, never raw coordinates.</p><span class="res" id="g4r"></span></div>
+    </div>
+    <div class="g2">
+      <div class="ctl"><h4>Audit log</h4><div class="tw"><table class="audit"><thead><tr><th>Time</th><th>Who</th><th>Device</th><th>Asked</th><th>Result</th></tr></thead><tbody id="audit"></tbody></table></div><div class="note">Every request, allowed or denied, is logged. Two denials in a row from the same person raise a flag to admin.</div></div>
+      <div class="ctl">
+        <h4>Who is asking</h4><div class="chips" id="ag-role"></div>
+        <h4>Which phone</h4><div class="chips" id="ag-device"></div>
+        <h4>Where LOCUS places that phone</h4><div class="chips" id="ag-where"></div>
+        <h4>Is this person P-112's POC?</h4><div class="chips" id="ag-poc"></div>
+        <button class="btn pri" id="ag-send">Send request</button>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <aside class="panel" id="panel" style="scroll-margin-top:110px">
+    <div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-t="beacons">Beacons</button><button role="tab" aria-selected="false" data-t="space">Space</button><button role="tab" aria-selected="false" data-t="radio">Radio</button><button role="tab" aria-selected="false" data-t="objects">Objects</button><button role="tab" aria-selected="false" data-t="report">Report</button></div>
+
+    <div class="pane on" id="t-beacons">
+      <div class="card">
+        <h4>Source</h4>
+        <div class="row"><button class="btn sm opt" id="b-demo" aria-pressed="true">Demo (simulated)</button><button class="btn sm opt" id="b-live" aria-pressed="false">Receiver phone</button></div>
+        <div id="o-demo" class="row"><span class="note">Walker</span><div class="seg" id="walk"><button data-w="demo" aria-pressed="true">Auto loop</button><button data-w="touch" aria-pressed="false">Tap / keys</button></div></div>
+        <div id="o-live" style="display:none;flex-direction:column;gap:8px">
+          <div class="note">On the receiver phone open <b>LOCUS ISHA → This phone is the RECEIVER</b>. It shows a 6-digit code. Type it here (phone and laptop both need internet).</div>
+          <div class="codein"><input id="i-code" inputmode="numeric" maxlength="6" placeholder="000000" aria-label="6-digit code from the phone" autocomplete="off"><button class="btn pri sm" id="b-pair">Link</button><button class="btn sm" id="b-unpair" disabled>Unlink</button></div>
+          <div class="note" id="n-code">Not linked.</div>
+          <details class="rules"><summary>No internet? Same Wi-Fi / hotspot instead</summary>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <div class="url"><input id="i-host" placeholder="phone IP e.g. 192.168.43.1:8080" autocomplete="off" spellcheck="false"><button class="btn pri sm" id="b-conn">Connect</button></div>
+            <div class="note" id="n-live">The receiver also serves this dashboard at the address it shows (port 8080).</div>
+            <div class="note warn" id="n-https" style="display:none">This page is on <b>https</b>, and browsers block plain-http requests to a phone. <button class="lnk" id="b-offline">Download this page</button>, open the file, then connect. Or just use the code above.</div></div>
+          </details>
+          <div class="note">No ground truth with real radio: <b>tap the floor where you really stand</b> to log an error sample. A phone in Simulation mode sends its true position, so the error is live.</div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Room and beacons</h4>
+        <div class="row"><label class="fld">Width m<input type="number" id="i-W" min="2" max="40" step="0.5" value="5"></label><label class="fld">Depth m<input type="number" id="i-H" min="2" max="24" step="0.5" value="4"></label></div>
+        <div class="row lay" id="lays"><button data-lay="2">2 · pair</button><button data-lay="3">3 · triangle</button><button data-lay="4">4 · square</button><button data-lay="6">6 · ring</button></div>
+        <div id="warn" class="warnbox ok" aria-live="polite">Starting…</div>
+        <div class="tw"><table class="bt"><thead><tr><th>#</th><th>On</th><th>x</th><th>y</th><th>z ↑</th><th>RSSI</th><th>Range</th><th>Trust</th><th>Cal</th></tr></thead><tbody id="bt"></tbody></table></div>
+        <div class="row"><span class="note">Calibrate at</span><div class="seg" id="cald"><button data-d="0.1" aria-pressed="false">10 cm</button><button data-d="0.5" aria-pressed="false">50 cm</button><button data-d="1" aria-pressed="true">1 m</button><button data-d="2" aria-pressed="false">2 m</button></div></div>
+        <div class="row"><button class="btn pri sm" id="b-gcal">Guided calibration</button><span class="note" id="n-cal">One beacon at a time. Two distances (e.g. 10 cm and 1 m) also fit the path-loss exponent.</span></div>
+        <div class="gcal" id="gcal"><b id="g-title"></b><div class="note" id="g-text"></div><div class="prog"><i id="g-bar"></i></div><div class="row"><button class="btn pri sm" id="g-go">Measure (3 s)</button><button class="btn sm" id="g-skip">Skip</button><button class="btn sm" id="g-stop">Stop</button></div></div>
+        <div class="note" id="n-why">Beacon # is the ID you pick in the app on each beacon phone. Untick one to test losing a beacon.</div>
+      </div>
+      <div class="row"><button class="btn sm" id="b-trail">Trail: on</button><button class="btn sm" id="b-reset">Clear trail</button><span class="note" id="n-path">Path: 0.0 m</span></div>
+    </div>
+
+    <div class="pane" id="t-space">
+      <h3>Space</h3>
+      <div class="seg" id="spaces" style="align-self:flex-start"><button data-sp="room" aria-pressed="false">My room</button><button data-sp="hospital" aria-pressed="true">Hospital floor</button></div>
+      <div class="note" id="n-space"></div>
+      <div id="o-room" style="display:flex;flex-direction:column;gap:12px">
+        <label class="fld">Ceiling height (m) <span class="v" id="v-Z">2.7</span><input type="range" id="i-Z" min="2" max="8" step="0.1" value="2.7"></label>
+        <div class="sw">Partition wall with door (NLOS test)<button class="tg" id="g-part" aria-pressed="false" aria-label="Partition"></button></div>
+      </div>
+      <h3>Tag height</h3>
+      <label class="fld">Held at <span class="v" id="v-zd">1.30 m</span><input type="range" id="i-zd" min="0" max="2.6" step="0.05" value="1.3"></label>
+      <div class="row"><div class="seg" id="zpre"><button data-z="0.05">Floor</button><button data-z="0.9">Pocket</button><button data-z="1.3">Hand</button><button data-z="2.0">Overhead</button></div></div>
+      <div class="sw">System knows the height<button class="tg" id="g-zknow" aria-pressed="true" aria-label="Height known"></button></div>
+      <label class="fld" id="f-zas" style="display:none">Height the system assumes <span class="v" id="v-za">1.30 m</span><input type="range" id="i-za" min="0" max="2.6" step="0.05" value="1.3"></label>
+      <h3>Moving beacons</h3>
+      <div class="banner" id="mv-banner">–</div>
+      <div class="row"><button class="btn sm" id="b-allmv">All walk</button><button class="btn sm" id="b-allfx">All fixed</button><button class="btn sm" id="b-mvclr">Clear log</button></div>
+      <div class="note">Drag a beacon in the view, set it to <b>walks</b> below, or call <code>update_beacon_position(id, x, y, t)</code>. LOCUS uses each beacon's newest position and how unsure it is. The dashed ring is where it really is.</div>
+      <div class="tw"><table><thead><tr><th>Time</th><th>Beacon</th><th>Moved</th><th>Direction</th><th>dx, dy (m)</th></tr></thead><tbody id="mv-log"></tbody></table></div>
+      <h3>Beacons <span class="note">(height, position, fixed or walking · tap to select)</span></h3>
+      <div id="anchors" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <div class="pane" id="t-radio">
+      <h3>Radio model</h3>
+      <label class="fld">Noise model<select id="i-model"><option value="rssi">Realistic RSSI (dB shadowing, 1 dB steps)</option><option value="add">Benchmark (additive metres, as in the trained dataset)</option></select></label>
+      <label class="fld"><span>Noise level</span><span class="v" id="v-sig">4 dB</span><input type="range" id="i-sig" min="0" max="10" step="0.5" value="4"></label>
+      <label class="fld">Packet loss <span class="v" id="v-loss">10%</span><input type="range" id="i-loss" min="0" max="60" step="1" value="10"></label>
+      <div class="row"><label class="fld">Default RSSI @ 1 m (dBm)<input type="number" id="i-r1" value="-59" step="1"></label><label class="fld">Path-loss n<input type="number" id="i-pn" value="2.2" step="0.1" min="1.5" max="4"></label></div>
+      <div class="note">These defaults are only used for a beacon that has not been calibrated. Real phones differ by 10 dB or more, so <b>calibrate every beacon</b> (Beacons tab): distances are then right down to centimetres near the beacon.</div>
+      <h3>Inject faults</h3>
+      <div class="note">Tap a beacon in the view (or select it in the Space tab), then:</div>
+      <div class="faults" id="faults"><button class="k" data-f="dead" aria-pressed="false">Kill beacon</button><button class="o" data-f="obstruct" aria-pressed="false">Block with body</button><button class="d" data-f="drift" aria-pressed="false">Drift / bias</button><button data-f="clear" aria-pressed="false">Clear all</button></div>
+    </div>
+
+    <div class="pane" id="t-objects">
+      <h3>Tagged objects</h3>
+      <div class="note">Simulated BLE tags, located by the same beacons and radio. Tap a row to highlight it on the map.</div>
+      <div class="tw"><table><thead><tr><th></th><th>Tag</th><th>Zone</th><th>Sure</th><th></th></tr></thead><tbody id="objs"></tbody></table></div>
+      <h3>Ask ISHA</h3>
+      <div class="isha"><form id="isha-f"><input id="isha-q" placeholder="e.g. where is the nearest wheelchair?" autocomplete="off"><button class="btn pri sm">Ask</button></form>
+        <div class="chips" id="isha-s"><button class="chip2" type="button">nearest oxygen cylinder</button><button class="chip2" type="button">where is P-112</button><button class="chip2" type="button">any alerts</button></div>
+        <div class="isha-a" id="isha-a"></div></div>
+    </div>
+
+    <div class="pane" id="t-report">
+      <div class="kpis"><div class="kpi g"><small>LOCUS median</small><b id="k-m1">–</b></div><div class="kpi"><small>Trilateration</small><b id="k-m2">–</b></div><div class="kpi"><small>Kalman</small><b id="k-m3">–</b></div><div class="kpi g"><small>LOCUS 95%</small><b id="k-p1">–</b></div><div class="kpi"><small>Trilat. 95%</small><b id="k-p2">–</b></div><div class="kpi"><small>Samples</small><b id="k-n">0</b></div></div>
+      <canvas id="spark"></canvas>
+      <table><thead><tr><th>Beacon</th><th>RSSI</th><th>Range</th><th>Trust</th></tr></thead><tbody id="tb"></tbody></table>
+      <div class="note" id="n-reason"></div>
+      <div class="row"><button class="btn pri sm" id="b-csv">Download session CSV</button><button class="btn sm" id="b-clear">Clear stats</button></div>
+      <div class="note warn"><b>What is real.</b> In <b>Demo</b> the radio is simulated from the walker's true position. With a <b>Receiver phone</b> on real Bluetooth the RSSI is real; tap the floor where you stand to log error samples. Tagged objects are always simulated.</div>
+    </div>
+  </aside>
+</div>
+<script>
+/*__VENDOR__*/
+</script>
+<script>
+/*__APP__*/
+</script>
+</body>
+</html>

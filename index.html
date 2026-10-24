@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LOCUS · ISHA</title>
+<meta name="description" content="Indoor positioning with a few Bluetooth beacons, a trust scorer that ignores bad readings, and ISHA, an assistant that finds hospital equipment.">
+<meta name="theme-color" content="#22C3E6">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--aqua:#22C3E6;--aqua-d:#0E9DBE;--aqua-l:#BFE9F3;--aqua-xl:#E6F8FC;--em:#10B981;--em-dd:#0A6B49;--em-l:#DDF6EA;--ink:#0B3A4A;--ink2:#3F6572;--ink3:#7A9AA6;--bg:#F4FCFE;--line:#CDEBF3;--amber:#F5A524;--grad:linear-gradient(135deg,#22C3E6 0%,#10B981 100%);--shadow:0 10px 28px rgba(34,195,230,.13)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Figtree,system-ui,sans-serif;background:var(--bg);color:var(--ink);background-image:radial-gradient(900px 420px at 85% -120px,rgba(34,195,230,.2),transparent 70%),radial-gradient(700px 380px at 0% 0%,rgba(16,185,129,.13),transparent 70%);background-repeat:no-repeat;padding:0 16px 40px}
+h1,h2,h3{font-family:Sora,system-ui,sans-serif}
+.wrap{max-width:1120px;margin:0 auto}
+header{display:flex;align-items:center;gap:10px;padding:18px 0}
+.logo{display:flex;align-items:center;gap:10px;font:700 18px Sora;letter-spacing:.12em}.logo small{font:600 12px Figtree;letter-spacing:.03em;color:var(--em-dd);background:var(--em-l);padding:3px 9px;border-radius:99px}
+header a{margin-left:auto;font-weight:700;color:var(--ink2);text-decoration:none;font-size:14px}
+.hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:center;padding:18px 0 26px}
+@media(max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+.hero h1{font-size:clamp(32px,4.6vw,52px);line-height:1.06;letter-spacing:-.01em}.hero h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--ink2);font-size:17px;line-height:1.55;margin:14px 0 18px;max-width:52ch}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px}.stat b{display:block;font:700 26px Sora;color:var(--em-dd)}.stat span{font-size:12.5px;color:var(--ink2);line-height:1.35;display:block}
+.live{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;position:relative}
+.live canvas{display:block;width:100%;aspect-ratio:16/11;background:linear-gradient(180deg,#F7FDFF,#EAF8FC)}
+.live .cap{position:absolute;left:12px;bottom:10px;right:12px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.live .cap span{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--ink2)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media(max-width:860px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:#fff;border:1.5px solid var(--line);border-radius:22px;padding:20px 20px 18px;text-decoration:none;color:var(--ink);display:flex;flex-direction:column;gap:8px;transition:transform .15s,border-color .15s,box-shadow .15s;min-height:132px}
+.card:hover{transform:translateY(-3px);border-color:var(--em);box-shadow:var(--shadow)}
+.card b{font:700 18px Sora}.card span{font-size:14.5px;line-height:1.55;color:var(--ink2)}
+.card.g{background:var(--grad);border:0;color:#fff}.card.g span{color:rgba(255,255,255,.92)}
+.card .tag{align-self:flex-start;font:700 10.5px Sora;letter-spacing:.08em;text-transform:uppercase;color:var(--em-dd);background:var(--em-l);padding:3px 8px;border-radius:99px}
+.code{background:#fff;border:1.5px solid var(--line);border-radius:22px;padding:18px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:16px 0}
+.code div{flex:1 1 260px}.code b{font:700 17px Sora}.code p{color:var(--ink2);font-size:14px;margin-top:3px}
+.code form{display:flex;gap:8px;flex:1 1 280px;min-width:0}.code input{flex:1;min-width:0;width:10px;height:50px;border:1.5px solid var(--aqua-l);border-radius:14px;text-align:center;font:700 24px Sora;letter-spacing:.3em}
+.code button{height:50px;padding:0 20px;border-radius:99px;border:0;background:var(--grad);color:#fff;font:700 15px Figtree;cursor:pointer}
+h2.sec{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin:26px 0 12px}
+.feat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}@media(max-width:860px){.feat{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.feat div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 13px;font-size:13.5px;line-height:1.45;color:var(--ink2)}.feat div b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
+footer{margin-top:26px;color:var(--ink3);font-size:12.5px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C3E6"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><path d="M16 2c-5.5 0-10 4.4-10 9.8C6 19 16 30 16 30s10-11 10-18.2C26 6.4 21.5 2 16 2z" fill="url(#lg)"/><circle cx="16" cy="12" r="4" fill="#fff"/></svg>LOCUS <small>ISHA</small></div><a href="https://github.com/siddhu2606/locus-final-isha">GitHub</a></header>
+
+<section class="hero">
+  <div>
+    <h1>Find any person or wheelchair indoors with <span>a few phones</span>.</h1>
+    <p>Phones become Bluetooth beacons. A receiver phone works out where it is, trusts only the readings that make sense, and ISHA tells the staff where the equipment is.</p>
+    <div class="stats"><div class="stat"><b>2.2 m</b><span>median error with 4 beacons, hospital floor (simulated)</span></div><div class="stat"><b>0.83</b><span>AUC catching bad readings (ML), vs 0.71 for rules</span></div><div class="stat"><b>1.2 s</b><span>to stop trusting a dead beacon</span></div></div>
+  </div>
+  <div class="live"><canvas id="hero" aria-label="Beacons locating a moving tag; one beacon fails and is ignored"></canvas><div class="cap"><span id="cap1">4 beacons · trust 0.9</span><span id="cap2">ellipse ± 1.1 m</span></div></div>
+</section>
+
+<div class="grid">
+  <a class="card g" href="https://github.com/siddhu2606/locus-final-isha/releases/latest/download/locus-isha.apk"><b>⬇ Android app (APK)</b><span>Install on 3+ phones: the beacons, and 1 receiver. Real Bluetooth, the staff app and ISHA voice.</span></a>
+  <a class="card" href="dashboard.html"><b>Live dashboard (demo)</b><span>3D hospital floor, simulated Bluetooth, trust scorer, alerts, access gates. Try 2, 3, 4 or 6 beacons.</span></a>
+  <a class="card" href="phone.html"><b>Phone app in the browser</b><span>Beacon or receiver, staff app and ISHA, running on a simulation. Open it on your phone.</span></a>
+  <a class="card" href="dashboard.html#access"><b>Access · three gates</b><span>Role, registered phone inside the hospital, point of contact. Every request audited.</span></a>
+  <a class="card" href="moving.html"><b>Moving beacons</b><span>Drag, walk or report beacon positions. Fixed vs moving comparison, honest numbers.</span></a>
+  <a class="card" href="docs/BEACON_STUDY.html"><b>How many beacons?</b><span>Simulation study: 2 vs 3 vs 4 vs 6, triangle vs line.</span></a>
+</div>
+
+<div class="code"><div><b>Got a code from the receiver phone?</b><p>Type it to open the live dashboard for that phone. Phone and laptop both need internet.</p></div>
+  <form id="cf"><input id="ci" inputmode="numeric" maxlength="7" placeholder="000 000" aria-label="6-digit code"><button>Open dashboard</button></form></div>
+
+<h2 class="sec">What is inside</h2>
+<div class="feat">
+  <div><b>Trust scorer · rules + ML</b>Every reading scored 0 to 1 by hand-written checks and a LightGBM model; either can veto a bad one.</div>
+  <div><b>Off radar + self-check</b>Tag silent for 3 s → flag to its point of contact. Beacon silent → repair alert.</div>
+  <div><b>Moving beacons</b>Beacons can be carried; LOCUS uses each new position and its uncertainty.</div>
+  <div><b>Height in 3D</b>Every beacon has a height, sent in its Bluetooth packet; 4+ beacons also estimate yours.</div>
+  <div><b>Accurate short range</b>Calibrate each beacon at 10 cm, 50 cm, 1 m or 2 m. Two distances also fit the fade rate.</div>
+  <div><b>ISHA, voice or chat</b>"Where is the nearest wheelchair?" Works offline, understands Hinglish.</div>
+  <div><b>Laptop by code</b>The receiver phone shows a 6-digit code; type it on any laptop.</div>
+  <div><b>Source</b><a href="https://github.com/siddhu2606/locus-final-isha">Engine, dashboard, phone app, Android, tests</a>.</div>
+</div>
+<footer>CodeApex 3.0 · Track 4 PS2 · Team V/Slash. Accuracy numbers are from simulation with known ground truth; real Bluetooth is noisier, so calibrate each beacon.</footer>
+</div>
+<script>
+document.getElementById('cf').onsubmit = e => { e.preventDefault(); const c = document.getElementById('ci').value.replace(/\D/g, ''); if (c.length === 6) location.href = 'dashboard.html#code=' + c; else document.getElementById('ci').focus(); };
+/* hero: 4 beacons, a walking tag, trust-weighted estimate + ellipse; beacon 3 dies every 12 s and is ignored */
+(() => {
+  const cv = document.getElementById('hero'), g = cv.getContext('2d'), B = [[1.2, 1.2], [14.8, 1.2], [14.8, 9.8], [1.2, 9.8]], W = 16, H = 11; let t = 0, est = [8, 5.5], tr = B.map(() => 0.9), last = performance.now();
+  const rnd = () => { let u = 0, v = 0; while (!u) u = Math.random(); v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.283 * v); };
+  function frame(now) {
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; t += dt; const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; if (cv.width !== Math.round(r.width * d)) { cv.width = r.width * d; cv.height = r.height * d; }
+    g.setTransform(d, 0, 0, d, 0, 0); const s = r.width / W, X = x => x * s, Y = y => y * s; g.clearRect(0, 0, r.width, r.height);
+    g.strokeStyle = '#DDF0F6'; g.lineWidth = 1; for (let x = 1; x < W; x++) { g.beginPath(); g.moveTo(X(x), 0); g.lineTo(X(x), r.height); g.stroke(); } for (let y = 1; y < H; y++) { g.beginPath(); g.moveTo(0, Y(y)); g.lineTo(r.width, Y(y)); g.stroke(); }
+    const tag = [8 + 5 * Math.sin(t * 0.35), 5.5 + 3 * Math.sin(t * 0.6)], dead = (t % 12) > 7;
+    let wx = 0, wy = 0, sw = 0;
+    B.forEach((b, i) => { const alive = !(dead && i === 2); tr[i] += ((alive ? 0.9 + 0.08 * Math.sin(t + i) : 0) - tr[i]) * Math.min(1, dt * (alive ? 2 : 1.4)); const w = tr[i] * tr[i]; wx += w * (tag[0] + rnd() * 0.5); wy += w * (tag[1] + rnd() * 0.5); sw += w;
+      for (let k = 0; k < 3 && alive; k++) { const ph = (t * 0.55 + k / 3 + i * 0.13) % 1; g.beginPath(); g.arc(X(b[0]), Y(b[1]), ph * 7 * s, 0, 7); g.strokeStyle = 'rgba(16,185,129,' + (0.35 * (1 - ph)).toFixed(2) + ')'; g.lineWidth = 1.5; g.stroke(); }
+      g.globalAlpha = 0.25 + 0.6 * tr[i]; g.strokeStyle = tr[i] > 0.5 ? '#10B981' : '#EF6A6A'; g.lineWidth = 1 + 4 * tr[i]; g.beginPath(); g.moveTo(X(b[0]), Y(b[1])); g.lineTo(X(est[0]), Y(est[1])); g.stroke(); g.globalAlpha = 1;
+      g.fillStyle = alive ? '#0E9DBE' : '#C9D6DB'; g.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 3 * k + Math.PI / 6; g.lineTo(X(b[0]) + 11 * Math.cos(a), Y(b[1]) + 11 * Math.sin(a)); } g.closePath(); g.fill(); g.fillStyle = '#fff'; g.font = '700 10px Figtree'; g.textAlign = 'center'; g.fillText(i + 1, X(b[0]), Y(b[1]) + 3.5);
+      g.fillStyle = tr[i] > 0.5 ? '#0A6B49' : '#b13a3a'; g.font = '700 11px Figtree'; g.fillText(alive ? tr[i].toFixed(2) : 'silent', X(b[0]), Y(b[1]) + (b[1] < 5 ? 26 : -18)); });
+    if (sw > 0) { est[0] += (wx / sw - est[0]) * Math.min(1, dt * 4); est[1] += (wy / sw - est[1]) * Math.min(1, dt * 4); }
+    const ea = dead ? 1.9 : 1.1; g.beginPath(); g.ellipse(X(est[0]), Y(est[1]), ea * s, ea * 0.7 * s, 0.4, 0, 7); g.fillStyle = 'rgba(16,185,129,.12)'; g.fill(); g.strokeStyle = 'rgba(16,185,129,.7)'; g.lineWidth = 1.5; g.stroke();
+    g.beginPath(); g.arc(X(tag[0]), Y(tag[1]), 9, 0, 7); g.strokeStyle = '#0B3A4A'; g.lineWidth = 2; g.setLineDash([3, 3]); g.stroke(); g.setLineDash([]);
+    g.beginPath(); g.arc(X(est[0]), Y(est[1]), 7, 0, 7); g.fillStyle = '#10B981'; g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.stroke();
+    document.getElementById('cap1').textContent = dead ? 'Beacon 3 silent → ignored, 3 beacons vote' : '4 beacons vote, weighted by trust²'; document.getElementById('cap2').textContent = 'ellipse ± ' + ea.toFixed(1) + ' m';
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

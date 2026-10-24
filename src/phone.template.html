@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LOCUS · ISHA</title>
+<link rel="manifest" href="manifest-phone.json">
+<meta name="theme-color" content="#10B981">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{--aqua:#22C3E6;--aqua-d:#0E9DBE;--aqua-l:#BFE9F3;--aqua-xl:#E6F8FC;--em:#10B981;--em-d:#0B8A5E;--em-dd:#0A6B49;--em-l:#DDF6EA;--ink:#0B3A4A;--ink2:#3F6572;--ink3:#7A9AA6;--bg:#F4FCFE;--line:#CDEBF3;--amber:#F5A524;--amber-l:#FFF1D6;--coral:#EF6A6A;--coral-l:#FFE3E3;--violet:#8B5CF6;--grad:linear-gradient(135deg,#22C3E6 0%,#10B981 100%);--shadow:0 10px 26px rgba(34,195,230,.14)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}
+body{font-family:Figtree,'Segoe UI',Roboto,system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:calc(84px + env(safe-area-inset-bottom));background-image:radial-gradient(700px 320px at 90% -80px,rgba(34,195,230,.2),transparent 70%),radial-gradient(500px 300px at 0 0,rgba(16,185,129,.14),transparent 70%);background-repeat:no-repeat}
+h1,h2,h3,.sora{font-family:Sora,Figtree,system-ui,sans-serif}
+button,input{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:rgba(244,252,254,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.logo{font:700 17px Sora,system-ui;letter-spacing:.12em;display:flex;align-items:center;gap:8px}.logo small{font:600 11px Figtree,system-ui;letter-spacing:.03em;color:var(--em-dd);background:var(--em-l);padding:3px 8px;border-radius:99px}
+.back{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-weight:700;display:none}
+.pill{margin-left:auto;display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:99px;background:#fff;border:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--ink3)}.pill.ok i{background:var(--em);box-shadow:0 0 0 3px rgba(16,185,129,.2)}.pill.warn i{background:var(--amber)}
+main{display:flex;flex-direction:column;gap:12px;padding:12px 14px;max-width:560px;margin:0 auto}
+.scr{display:none;flex-direction:column;gap:12px}.scr.on{display:flex}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:11px;min-width:0}
+.card h2{font:700 15px Sora,system-ui}.card h3{font:700 11px Sora,system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.note{font-size:12.5px;line-height:1.45;color:var(--ink2)}.note.warn{background:var(--amber-l);border-radius:12px;padding:9px 11px;color:#7a5200}.note b{color:var(--ink)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{height:48px;padding:0 18px;border-radius:99px;border:1.5px solid var(--aqua-l);background:#fff;font-weight:700;font-size:15px;flex:1;min-width:110px}
+.btn.pri{background:var(--grad);border:0;color:#fff;box-shadow:0 6px 16px rgba(16,185,129,.28)}.btn.sm{height:38px;font-size:13.5px;min-width:80px;flex:0 0 auto}.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5}
+.role{border-radius:22px;padding:20px 18px;display:flex;flex-direction:column;gap:6px;text-align:left;box-shadow:var(--shadow);border:1px solid var(--line);background:#fff}
+.role b{font:700 20px Sora,system-ui}.role span{font-size:13.5px;line-height:1.45;color:var(--ink2)}
+.role.g{background:var(--grad);border:0;color:#fff}.role.g span{color:rgba(255,255,255,.92)}
+.hero{display:flex;flex-direction:column;gap:6px;padding:6px 2px}.hero h1{font:700 26px Sora,system-ui;line-height:1.15}.hero p{color:var(--ink2);font-size:14px;line-height:1.5}
+.seg{display:flex;background:var(--aqua-xl);border-radius:99px;padding:3px;gap:2px;width:100%}.seg button{flex:1;height:36px;border-radius:99px;font-size:13px;font-weight:700;color:var(--ink2)}.seg button.on{background:#fff;color:var(--em-dd);box-shadow:0 2px 8px rgba(11,58,74,.12)}.seg button:disabled{opacity:.45}
+.nums{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.nums button{height:46px;border-radius:14px;border:1.5px solid var(--line);font:700 18px Sora,system-ui;background:#fff}.nums button.on{background:var(--em);border-color:var(--em);color:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{height:34px;padding:0 12px;border-radius:99px;border:1.5px solid var(--line);font-size:13px;font-weight:700;color:var(--ink2);background:#fff}.chip.on{background:var(--em);border-color:var(--em);color:#fff}
+.code{font:700 40px Sora,system-ui;letter-spacing:.18em;text-align:center;color:var(--ink);padding:4px 0}
+.pulse{position:relative;height:150px;display:grid;place-items:center}.pulse b{width:74px;height:74px;border-radius:50%;background:var(--grad);display:grid;place-items:center;color:#fff;font:700 28px Sora,system-ui;z-index:1;box-shadow:0 8px 24px rgba(16,185,129,.35)}
+.pulse i{position:absolute;width:74px;height:74px;border-radius:50%;border:2px solid var(--em);opacity:0}.pulse.on i{animation:pl 2.4s ease-out infinite}.pulse.on i:nth-child(2){animation-delay:.8s}.pulse.on i:nth-child(3){animation-delay:1.6s}
+@keyframes pl{from{transform:scale(1);opacity:.7}to{transform:scale(2.6);opacity:0}}
+canvas{width:100%;display:block;border-radius:14px;background:linear-gradient(180deg,#F7FDFF,#EAF8FC);touch-action:none}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.kv div{background:var(--aqua-xl);border-radius:12px;padding:8px 10px;min-width:0}.kv small{display:block;font-size:11px;color:var(--ink3);font-weight:700}.kv b{font:700 16px Sora,system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}th{text-align:left;color:var(--ink3);font-size:11px;font-weight:700;padding:4px 3px;border-bottom:1px solid var(--line);text-transform:uppercase}td{padding:7px 3px;border-bottom:1px solid #EAF6FA}
+.cal{height:28px;padding:0 10px;border-radius:99px;border:1.5px solid var(--aqua-l);font-size:12px;font-weight:700;background:#fff}.cal.set{border-color:var(--em);color:var(--em-dd)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--ink3)}.dot.ok{background:var(--em)}.dot.bad{background:var(--coral)}
+.sheet{border:1.5px dashed var(--aqua);border-radius:14px;padding:12px;display:none;flex-direction:column;gap:8px}.sheet.on{display:flex}.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;width:0;background:var(--grad)}
+.item{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid #EAF6FA}.item:last-child{border:0}.item .ob{min-width:34px;height:24px;border-radius:7px;color:#fff;font:700 11px Figtree,system-ui;display:grid;place-items:center;padding:0 4px}.item div{flex:1;min-width:0}.item b{font-size:14px}.item small{display:block;color:var(--ink2);font-size:12.5px}.item em{font-style:normal;font-weight:700;font-size:13px;color:var(--em-dd);white-space:nowrap}.item.off em{color:#b13a3a}
+.gates{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.gt{border:2px solid var(--line);border-radius:12px;padding:7px;font-size:11.5px;font-weight:700;color:var(--ink2);min-height:58px;transition:.25s}.gt small{display:block;font-size:10px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase}.gt.pass{border-color:var(--em);color:var(--em-dd)}.gt.fail{border-color:var(--coral);color:#b13a3a}.gt.active{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,165,36,.2)}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;font-weight:600}
+.tg{width:46px;height:27px;border-radius:99px;background:#CFE1E7;position:relative;flex:none;transition:.2s}.tg::after{content:'';position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.25)}.tg.on{background:var(--em)}.tg.on::after{left:22px}
+.card>.btn{flex:none}.chat{display:flex;flex-direction:column;gap:8px;height:calc(100vh - 400px);min-height:220px;overflow-y:auto;padding:2px}#sugg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}#sugg .chip{flex:none}
+.msg{max-width:86%;padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.45}.msg.u{align-self:flex-end;background:var(--aqua-xl);border-bottom-right-radius:4px;font-weight:600}.msg.a{align-self:flex-start;background:var(--em-l);color:#064d36;border-bottom-left-radius:4px}
+.ask{display:flex;gap:8px;align-items:center}.ask input{flex:1;min-width:0;height:48px;border:1.5px solid var(--aqua-l);border-radius:99px;padding:0 16px;font-size:15px;background:#fff}
+.mic{width:52px;height:52px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;flex:none;box-shadow:0 6px 16px rgba(16,185,129,.3)}.mic.on{background:var(--coral);animation:mp 1s ease-in-out infinite}@keyframes mp{50%{box-shadow:0 0 0 10px rgba(239,106,106,.18)}}
+.isha-h{display:flex;align-items:center;gap:12px}.av{width:46px;height:46px;border-radius:50%;background:var(--grad);display:grid;place-items:center;color:#fff;font:700 18px Sora,system-ui;flex:none}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:none;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:6px 10px calc(6px + env(safe-area-inset-bottom))}
+nav.tabs.on{display:flex}nav.tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:700;color:var(--ink3);padding:4px 0}nav.tabs button svg{width:22px;height:22px}nav.tabs button.on{color:var(--em-dd)}
+.flag{border-radius:12px;padding:9px 11px;font-size:13px;line-height:1.4}.flag.ok{background:var(--em-l);color:var(--em-dd)}.flag.bad{background:var(--amber-l);color:#7a5200}
+a{color:var(--em-dd);font-weight:700}
+</style>
+</head>
+<body>
+<header><button class="back" id="b-back" aria-label="Back">‹</button><div class="logo">LOCUS<small id="h-sub">ISHA</small></div><span class="pill" id="pill"><i></i><span id="pill-t">Ready</span></span></header>
+<main>
+  <!-- HOME -->
+  <section class="scr on" id="s-home">
+    <div class="hero"><h1>Find anything indoors.</h1><p>A few phones become Bluetooth beacons. One phone listens, works out where it is, and helps the staff with ISHA.</p></div>
+    <button class="role g" id="go-rx"><b>This phone is the RECEIVER</b><span>Hears the beacons, shows the laptop a live dashboard with a code, and is the staff app with ISHA.</span></button>
+    <button class="role" id="go-bc"><b>This phone is a BEACON</b><span>Put it at a fixed spot and pick its number and height. It only sends a Bluetooth signal.</span></button>
+    <div class="note" id="n-env"></div>
+  </section>
+
+  <!-- BEACON -->
+  <section class="scr" id="s-beacon">
+    <div class="card"><h2>Beacon number</h2><div class="nums" id="bnum"></div><div class="note">Must match the beacon's number on the dashboard.</div></div>
+    <div class="card"><h2>Height</h2><div class="chips" id="bh"><button class="chip" data-h="0.3">Floor 0.3 m</button><button class="chip" data-h="0.9">Table 0.9 m</button><button class="chip" data-h="1.5">Wall 1.5 m</button><button class="chip" data-h="2.4">Ceiling 2.4 m</button></div>
+      <div class="note">Sent inside the Bluetooth packet, so the dashboard places this beacon at the right height in 3D.</div></div>
+    <div class="card"><div class="pulse" id="bpulse"><i></i><i></i><i></i><b id="bpn">1</b></div>
+      <div class="note" id="bstat" style="text-align:center">Not sending.</div>
+      <div class="row"><button class="btn pri" id="b-adv">Start beacon</button><button class="btn" id="b-advs">Stop</button></div></div>
+  </section>
+
+  <!-- RECEIVER: RADAR -->
+  <section class="scr" id="s-radar">
+    <div class="card"><div class="seg" id="srcs"><button data-s="ble">Real Bluetooth</button><button data-s="sim">Simulation</button></div><div class="note" id="n-src"></div></div>
+    <div class="card"><h3>Laptop dashboard code</h3><div class="code" id="code">······</div>
+      <div class="note" id="n-link">On the laptop open <b id="site">the LOCUS site</b> → Live dashboard → <b>Receiver phone</b>, and type this code.</div></div>
+    <div class="card"><canvas id="map" aria-label="Map with beacons, you and tagged objects"></canvas>
+      <div class="kv"><div><small>You are in</small><b id="k-zone">–</b></div><div><small>± 90%</small><b id="k-unc">–</b></div><div><small>Beacons heard</small><b id="k-n">–</b></div></div>
+      <div class="note" id="n-map"></div></div>
+    <div class="card"><h3>Beacons</h3>
+      <table><thead><tr><th>#</th><th>Height</th><th>RSSI</th><th>Distance</th><th>/s</th><th></th></tr></thead><tbody id="blist"></tbody></table>
+      <div class="sheet" id="cal"><b id="cal-t">Calibrate</b><div class="chips" id="cald"><button class="chip" data-d="0.1">10 cm</button><button class="chip" data-d="0.5">50 cm</button><button class="chip on" data-d="1">1 m</button><button class="chip" data-d="2">2 m</button></div>
+        <div class="note" id="cal-n">Hold this phone at the chosen distance from the beacon, same height, and keep still.</div><div class="prog"><i id="cal-p"></i></div>
+        <div class="row"><button class="btn pri sm" id="cal-go">Measure 3 s</button><button class="btn sm" id="cal-x">Close</button></div></div>
+      <div class="note" id="n-cal">Distances are only right after calibration: tap <b>Cal</b> next to each beacon. Two distances (for example 10 cm and 1 m) also fit how fast the signal fades.</div></div>
+  </section>
+
+  <!-- RECEIVER: STAFF -->
+  <section class="scr" id="s-staff">
+    <div class="card"><h3>Signed in as</h3><div class="chips" id="roles"></div>
+      <div class="sw">This phone is registered with LOCUS<button class="tg on" id="t-reg" aria-label="Registered"></button></div>
+      <div class="sw">I am patient P-112's point of contact<button class="tg on" id="t-poc" aria-label="POC"></button></div></div>
+    <div class="card"><h3>Find equipment</h3><div class="chips" id="ftypes"></div><div id="flist"></div></div>
+    <div class="card"><h3>Patient P-112 · three gates</h3>
+      <div class="gates"><div class="gt" id="pg1"><small>Gate 1</small>Role</div><div class="gt" id="pg2"><small>Gate 2</small>Phone</div><div class="gt" id="pg3"><small>Gate 3</small>POC</div><div class="gt" id="pg4"><small>Answer</small><span id="pans">–</span></div></div>
+      <button class="btn pri" id="b-pat">Where is patient P-112?</button><div class="note" id="n-pat">Every request is checked and logged on the dashboard.</div></div>
+    <div class="card"><h3>Alerts</h3><div id="alerts" class="flag ok">No alerts.</div></div>
+  </section>
+
+  <!-- RECEIVER: ISHA -->
+  <section class="scr" id="s-isha">
+    <div class="card"><div class="isha-h"><div class="av">I</div><div><h2>ISHA</h2><div class="note">Your LOCUS advisor. Ask by voice or text, in English or Hinglish.</div></div><button class="btn sm" id="b-spk" style="margin-left:auto">Voice on</button></div>
+      <div class="chat" id="chat"></div>
+      <form class="ask" id="askf"><input id="askq" placeholder="Ask ISHA…" autocomplete="off"><button type="button" class="mic" id="b-mic" aria-label="Ask by voice"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></form>
+      <div class="chips" id="sugg"><button class="chip">Where is the nearest wheelchair?</button><button class="chip">oxygen kahan hai</button><button class="chip">Where am I?</button><button class="chip">Any alerts?</button><button class="chip">Is beacon 3 working?</button><button class="chip">Where is patient P-112?</button></div></div>
+  </section>
+</main>
+<nav class="tabs" id="tabs">
+  <button data-s="radar" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12l6-6"/></svg>Radar</button>
+  <button data-s="staff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Staff</button>
+  <button data-s="isha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>ISHA</button>
+</nav>
+<script>
+/*__VENDOR__*/
+</script>
+<script>
+/*__APP__*/
+</script>
+</body>
+</html>
