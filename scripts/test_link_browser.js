@@ -31,6 +31,16 @@ const { launch } = require('./cdp.js'); let fail = 0; const ok = (c, m) => { con
   await B.ev(`document.querySelector('#roles [data-r=nurseB]').click()`); await B.ev(`__phone.ask('where is patient P-112')`);
   const a3 = await B.ev(`[...document.querySelectorAll('#chat .msg.a')].pop().textContent`);
   ok(/Patient P-112 is in Ward B · bed \d+ \(\d+% sure\)/.test(a3), 'nurse of Ward B who is POC gets the room: ' + a3);
+  /* moving beacons while a phone (simulation) is linked: beacons walk, the phone's radio follows where they really are */
+  await A.ev(`document.querySelector('.tabs [data-t=space]').click()`); await A.sleep(300);
+  ok(await A.ev(`[...document.querySelectorAll('.mvb')].every(b => !b.disabled)`), 'walks buttons are enabled with a phone in Simulation mode');
+  await A.ev(`document.getElementById('b-allmv').click()`); await A.sleep(7000);
+  const mv = JSON.parse(await A.ev(`JSON.stringify({ n: __locus.MT.log.length, mv: __locus.S.anchors.every(a => a.mv), err: __locus.cur.e.loc, apart: __locus.S.anchors.some(a => a.tx !== a.x) })`));
+  ok(mv.mv && mv.n >= 3 && mv.apart && mv.err != null && mv.err < 3, `live: all beacons walk, ${mv.n} moves logged, error ${mv.err && mv.err.toFixed(2)} m`);
+  const ph = JSON.parse(await B.ev(`JSON.stringify(__phone.P.anchors.map(a => [a.tx, a.ty]))`)), da = JSON.parse(await A.ev(`JSON.stringify(__locus.S.anchors.map(a => [a.tx, a.ty]))`));
+  ok(ph.every((p, i) => Math.hypot(p[0] - da[i][0], p[1] - da[i][1]) < 0.6), 'phone simulates the radio from the beacons\' real (walking) positions');
+  ok(await B.ev(`__phone.eng.inited && __phone.P.meas.filter(Boolean).length >= 3`), 'phone keeps tracking while beacons move (filter not restarted)');
+  await A.ev(`document.getElementById('b-allfx').click()`);
   await B.ev(`document.querySelector('#tabs [data-s=radar]').click()`); await B.sleep(800); await B.shot(process.env.SHOT_DIR ? process.env.SHOT_DIR + '/phone_radar.png' : 'phone_radar.png');
   await A.shot(process.env.SHOT_DIR ? process.env.SHOT_DIR + '/dash_linked.png' : 'dash_linked.png');
   ok(!A.logs.length && !B.logs.length, 'no console errors' + (A.logs.concat(B.logs).length ? ': ' + A.logs.concat(B.logs).join(' | ') : ''));

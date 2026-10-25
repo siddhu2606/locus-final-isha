@@ -22,7 +22,7 @@ function setupSpace(c) {
   if (c) { Object.assign(P, { space: c.space, W: c.W, H: c.H, Z: c.Z, model: c.model, sigDb: c.sigDb, sigM: c.sigM, loss: c.loss, rssi1m: c.rssi1m, pn: c.pn, scorer: c.scorer }); }
   if (P.space === 'hospital') { setSite('hospital'); P.W = FLOOR.w; P.H = FLOOR.h; } else setRoom(P.W, P.H, [], []);
   const list = c ? c.anchors : defaultAnchors();
-  P.anchors = list.map(q => ({ id: 'A' + q[0], b: q[0], x: q[1], y: q[2], z: q[3], p1: q[4] != null ? q[4] : null, n: q[5] || null }));
+  P.anchors = list.map(q => ({ id: 'A' + q[0], b: q[0], x: q[1], y: q[2], z: q[3], p1: q[4] != null ? q[4] : null, n: q[5] || null, tx: q[6] != null ? q[6] : q[1], ty: q[7] != null ? q[7] : q[2] }));
   P.anchors.forEach(a => { const k = P.cal[a.b]; if (a.p1 == null && k) { a.p1 = k.p1; a.n = k.n; } });
   eng = new Locus(P.anchors, { N: 300, sigma: P.space === 'hospital' ? 0.6 : 0.5, rng: rngMake(11), inflate: 2.0, scorer: typeof trustPredict === 'function' ? trustPredict : null, mode: P.scorer });
   asim = new AssetSim(P.space, P.W, P.H, 77);
@@ -40,7 +40,7 @@ function simRadio(dt) {   /* this phone walks the floor; every beacon's RSSI is 
   else { if (!goal) goal = path[P.wi % path.length]; const dx = goal[0] - P.truth[0], dy = goal[1] - P.truth[1], d = Math.hypot(dx, dy), sp = (P.space === 'hospital' ? 1.3 : 0.8) * dt;
     if (d <= sp) { P.truth = goal.slice(); if (P.tgt) P.tgt = null; else P.wi++; } else if (!crossesWall(P.truth[0], P.truth[1], P.truth[0] + dx / d * sp, P.truth[1] + dy / d * sp)) { P.truth = [P.truth[0] + dx / d * sp, P.truth[1] + dy / d * sp]; } else { P.tgt = null; P.wi++; } }
   const cfg = { model: P.model, loss: P.loss, rssi1m: P.rssi1m, n: P.pn, sigma: P.model === 'add' ? P.sigM : 0.6, sigmaDb: P.sigDb, wallDb: 6, obstructDb: 12, driftDb: 6, burst: 0.002, wallBias: P.space === 'hospital' ? 1.8 : 1.2, obstructBias: 2, driftBias: 1.2 };
-  const now = performance.now(), m = measure3D(P.truth, zT, zT, P.anchors, cfg, rng, wallsBetween);
+  const now = performance.now(), real = P.anchors.map(a => a.tx === a.x && a.ty === a.y ? a : { ...a, x: a.tx, y: a.ty }), m = measure3D(P.truth, zT, zT, real, cfg, rng, wallsBetween);   /* beacons that walk: the radio uses where they really are */
   m.forEach((q, i) => { if (!q) return; const b = P.anchors[i].b; P.samples.push({ b, rssi: q.rssi, t: now }); P.heard[b] = now; Link.queue(b, q.rssi, null); });
 }
 function liveMeas() {
@@ -83,7 +83,8 @@ const Link = (() => {
   function onData(d) {
     lastRx = performance.now();
     if (!P.linked) { P.linked = true; pill('ok', 'Laptop linked'); helloT = 0; send({ t: 'want' }); }
-    if (d.t === 'cfg') { const c = d.c, sig = SIGKEY(); P.cfg = c; setupSpace(c); if (SIGKEY() !== sig) P.tgt = null; }
+    if (d.t === 'cfg') { const c = d.c, sig = SIGKEY(), same = P.cfg && eng && c.space === P.space && c.W === P.W && c.H === P.H && c.anchors.length === P.anchors.length && c.anchors.every((q, i) => q[0] === P.anchors[i].b && q[3] === P.anchors[i].z && q[4] === P.anchors[i].p1);
+      P.cfg = c; if (same) { c.anchors.forEach((q, i) => { const a = P.anchors[i]; a.tx = q[6] != null ? q[6] : q[1]; a.ty = q[7] != null ? q[7] : q[2]; eng.moveAnchor(i, q[1], q[2]); }); } else { setupSpace(c); if (SIGKEY() !== sig) P.tgt = null; } }
     else if (d.t === 'st') { P.dash = d; P.dashT = performance.now(); }
     else if (d.t === 'ans') { const f = pend[d.id]; if (f) { delete pend[d.id]; f(d); } }
   }

@@ -5,6 +5,8 @@
    Three ways to move one: drag it in the view, switch it to "walks" (demo), or update_beacon_position(id, x, y, ts).
    A walking beacon reports its own position with 5 cm noise; the engine takes the report with that uncertainty (Locus.moveAnchor). */
 const MT = new MoveTracker({ threshold: 0.1, smoothing: 0.5, trailLen: 15, recentSec: 10, speedSec: 1, settleSec: 0.8, turnDeg: 35, arrowHoldSec: 8, logMax: 120 });
+/* walking is simulated motion, so it is offered only when the radio is simulated too (Demo, or a linked phone in Simulation mode) */
+const canWalk = () => S.mode !== 'live' || S.phoneSrc === 'sim';
 const MVR = () => S.space === 'hospital' ? 3 : Math.max(0.5, Math.min(1.2, 0.25 * Math.min(S.W, S.H)));
 function moveBeacons(dt) {
   const rr = eng.rng;
@@ -50,7 +52,7 @@ function drawBeaconMoves() {
 }
 function renderMoves() {
   const L = MT.log.slice(0, 12), b = L[0];
-  $('mv-banner').textContent = b ? moveTextSeg(b) + (b.live ? ' (moving)' : '') : 'No beacon has moved yet. Drag one in the view, or switch one to "walks".';
+  $('mv-banner').textContent = b ? moveTextSeg(b) + (b.live ? ' (moving)' : '') : canWalk() ? 'No beacon has moved yet. Drag one in the view, or switch one to "walks".' : 'Real beacons: carry a beacon phone to its new spot, then drag its marker there (or type its new x, y). LOCUS logs the move and uses the new position right away.';
   $('mv-log').innerHTML = L.map(m => `<tr><td>${clockStr(m.t0)}</td><td><b>B${m.id.replace('A', '')}</b></td><td>${m.dist.toFixed(2)} m</td><td>${Math.round(m.bearing)}° ${m.compass}</td><td>${sg1(m.dx)}, ${sg1(m.dy)}</td></tr>`).join('') || '<tr><td colspan="5" class="note">–</td></tr>';
   document.querySelectorAll('#anchors .an').forEach(el => { const a = S.anchors[+el.dataset.i], st = a && MT.stats(a.id, S.clock), o = el.querySelector('.mvs'); if (o && st) o.textContent = 'moved ' + st.total.toFixed(1) + ' m · last 10 s ' + st.recent.toFixed(1) + ' m · ' + st.speed.toFixed(2) + ' m/s'; });
 }
@@ -164,7 +166,7 @@ function renderAudit() { $('audit').innerHTML = AUD.rows.slice(0, 12).map(r => `
    phone -> laptop:  hello {device, src: 'ble' | 'sim'},  s {s: [[beacon, rssi, msAgo, heightDm]]},  truth {p} (simulation only),  req {role, device, inside, poc},  cal {b, d, rssi}
    laptop -> phone:  cfg (room, beacons, calibration, scorer),  st (estimate, zone, trust, objects, alerts) every 0.5 s,  ans (gate result)          */
 const Phone = (() => {
-  let relay = null, code = null, lastRx = 0, stT = 0, joinT = 0, cfgDirty = true;
+  let relay = null, code = null, lastRx = 0, stT = 0, joinT = 0, mvT = 0, cfgDirty = true;
   const say = m => { $('n-code').innerHTML = m; };
   const live = () => !!relay && relay.on && performance.now() - lastRx < 5000;
   function connect(cd) {
@@ -181,7 +183,7 @@ const Phone = (() => {
     if (d.t === 's') {
       (d.s || []).forEach(q => { S.samples.push({ b: q[0], rssi: q[1], t: now - (q[2] || 0) }); if (q[3] != null) { const a = S.all.find(x => x.b === q[0]); if (a && q[3] > 0 && Math.abs(a.z - q[3] / 10) > 0.05) { a.z = q[3] / 10; renderAnchors(); buildTable(); cfgDirty = true; } } });
       if (d.src) S.phoneSrc = d.src;
-    } else if (d.t === 'hello') { if (S.phoneSrc !== d.src || !/Linked to <b>/.test($('n-code').innerHTML)) say('Linked to <b>' + (d.device || 'phone') + '</b> (' + (d.src === 'ble' ? 'real Bluetooth' : 'simulation') + ') · code ' + code + '.'); S.phoneSrc = d.src; }
+    } else if (d.t === 'hello') { if (S.phoneSrc !== d.src) { S.phoneSrc = d.src; if (!canWalk()) S.anchors.forEach(a => { if (a.mv) { a.mv = false; placeBeacon(a, a.tx, a.ty, false); } }); renderAnchors(); } if (S.phoneSrc !== d.src || !/Linked to <b>/.test($('n-code').innerHTML)) say('Linked to <b>' + (d.device || 'phone') + '</b> (' + (d.src === 'ble' ? 'real Bluetooth' : 'simulation') + ') · code ' + code + '.'); S.phoneSrc = d.src; }
     else if (d.t === 'truth') { S.phoneTruth = d.p; S.phoneTruthT = now; }
     else if (d.t === 'req') { const r = gateRun({ role: d.role, device: d.device, inside: d.inside, poc: d.poc, via: 'phone' }); send({ t: 'ans', id: d.id, allowed: r.allowed, answer: r.answer, text: r.text }); }
     else if (d.t === 'cal') { const i = S.all.findIndex(a => a.b === d.b); if (i >= 0) { addCal(i, d.d, d.rssi); buildTable(); } }
@@ -189,12 +191,13 @@ const Phone = (() => {
   }
   function send(m) { return relay ? relay.send(m) : false; }
   function leave(quiet) { if (relay) relay.close(); relay = null; if (S.linkKind === 'code') { S.link = false; S.linkKind = null; S.phoneTruth = null; srcPill(); } if (!quiet) { say('Not linked.'); code = null; $('b-unpair').disabled = true; } }
-  function cfg() { return { space: S.space, W: S.W, H: S.H, Z: S.Z, model: S.model, sigDb: S.sigDb, sigM: S.sigM, loss: S.loss, rssi1m: S.rssi1m, pn: S.pn, scorer: S.scorer, anchors: S.anchors.map(a => [a.b, +a.x.toFixed(2), +a.y.toFixed(2), +a.z.toFixed(2), a.p1, a.n]) }; }
+  function cfg() { return { space: S.space, W: S.W, H: S.H, Z: S.Z, model: S.model, sigDb: S.sigDb, sigM: S.sigM, loss: S.loss, rssi1m: S.rssi1m, pn: S.pn, scorer: S.scorer, anchors: S.anchors.map(a => [a.b, +a.x.toFixed(2), +a.y.toFixed(2), +a.z.toFixed(2), a.p1, a.n, +a.tx.toFixed(2), +a.ty.toFixed(2)]) }; }
   function pump(now) {
     if (!relay || !relay.on) return;
     if (now - joinT > 2000) { joinT = now; send({ t: 'join' }); }
     if (S.linkKind === 'code' && now - lastRx > 6000) { S.link = false; S.linkKind = null; S.phoneTruth = null; srcPill(); say('Phone <b>' + code + '</b> stopped sending. Waiting…'); }
     if (!live()) return;
+    if (S.anchors.some(a => a.mv) && now - mvT > 300) { mvT = now; cfgDirty = true; }
     if (cfgDirty) { cfgDirty = false; send({ t: 'cfg', c: cfg() }); }
     if (now - stT > 600 && cur) { stT = now; const o = cur.out; send({ t: 'st', est: o ? o.pos : null, zone: o ? zoneOf(S.space, o.pos[0], o.pos[1], S.W, S.H) : null, err: cur.e.loc, assets: S.assets.list(), alerts: alertList() }); }
   }
@@ -210,7 +213,7 @@ function bindMore() {
   $('b-shield').onclick = () => { S.shield = !S.shield; alertLog('info', S.shield ? 'Tag shielded (wrapped in foil / carried out of range).' : 'Shield removed.'); renderAlerts(); };
   $('objs').onclick = e => { const sh = e.target.closest('button[data-sh]'); if (sh) { const id = sh.dataset.sh; S.shieldSet.has(id) ? S.shieldSet.delete(id) : S.shieldSet.add(id); renderObjects(); return; } const tr = e.target.closest('tr[data-id]'); if (tr) { S.focus = S.focus === tr.dataset.id ? null : tr.dataset.id; updateObjects(); } };
   document.querySelectorAll('#cald button').forEach(b => b.onclick = () => { S.calD = +b.dataset.d; setSeg('cald', 'd', b.dataset.d); gShow(); });
-  $('b-allmv').onclick = () => { if (S.mode === 'live') return; S.anchors.forEach(a => { a.mv = true; a.hx = a.tx; a.hy = a.ty; }); renderAnchors(); };
+  $('b-allmv').onclick = () => { if (!canWalk()) { renderMoves(); return; } S.anchors.forEach(a => { a.mv = true; a.hx = a.tx; a.hy = a.ty; }); renderAnchors(); };
   $('b-allfx').onclick = () => { S.anchors.forEach(a => { if (a.mv) { a.mv = false; placeBeacon(a, a.tx, a.ty, false); } }); renderAnchors(); };
   $('b-mvclr').onclick = () => { MT.log.length = 0; renderMoves(); };
   $('isha-f').onsubmit = e => { e.preventDefault(); const q = $('isha-q').value.trim(); if (!q) return; $('isha-q').value = ''; dashIsha(q); };
