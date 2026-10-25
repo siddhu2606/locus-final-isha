@@ -47,7 +47,7 @@ function rebuild(keepAnchors) {
   if (S.space === 'room') setRoom(S.W, S.H, S.anchors, partitions(), S.plan.rooms.length ? S.plan.rooms : null);
   S.pos = [Math.min(S.W - .2, Math.max(.2, S.pos[0])), Math.min(S.H - .2, Math.max(.2, S.pos[1]))];
   if (isSite() && (S.pos[0] < 1 || S.pos[1] < 1)) S.pos = [3, 12];
-  newEngine(); resetSense(); S.route = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
+  newEngine(); resetSense(); Object.keys(RF).forEach(k => delete RF[k]); S.route = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
   S.assets = new AssetSim(S.space, S.W, S.H, 77); MT.log.length = 0; MT.b = {}; S.anchors.forEach(a => MT.update(a.id, a.x, -a.y, S.clock, true));
   fitView(); save(); Phone.cfgChanged();
 }
@@ -90,9 +90,10 @@ function updateTruth(dt) {
   if (S.calib != null) { const a = S.all[S.calib], rh = S.calD, cx = S.W / 2 - a.x, cy = S.H / 2 - a.y, L = Math.hypot(cx, cy) || 1; S.pos = [a.x + cx / L * rh, a.y + cy / L * rh]; return; }
   if (S.src === 'demo' && S.space === 'room' && S.plan.walls.length) {   /* floor plan with walls: walk zone to zone through the doors */
     if (!S.route || !S.route.length) { const p = demoPath(); demoI %= p.length; S.route = gridRoute(S.pos, p[demoI], S.W, S.H); demoI++; }
-    const tg = S.route[0], b4 = S.pos.slice(); if (moveToward(tg[0], tg[1], spd, dt) || (S.pos[0] === b4[0] && S.pos[1] === b4[1])) S.route.shift();
+    if (S.wait > 0) { S.wait -= dt; return; }
+    const tg = S.route[0], b4 = S.pos.slice(); if (moveToward(tg[0], tg[1], spd, dt) || (S.pos[0] === b4[0] && S.pos[1] === b4[1])) { S.route.shift(); if (!S.route.length) S.wait = 3 + 2 * Math.random(); }
   }
-  else if (S.src === 'demo') { const p = demoPath(); demoI %= p.length; if (moveToward(p[demoI][0], p[demoI][1], spd, dt)) demoI = (demoI + 1) % p.length; }
+  else if (S.src === 'demo') { if (S.wait > 0) { S.wait -= dt; return; } const p = demoPath(); demoI %= p.length; if (moveToward(p[demoI][0], p[demoI][1], spd, dt)) { demoI = (demoI + 1) % p.length; S.wait = 3 + 2 * Math.random(); } }
   else if (S.src === 'touch') {
     let vx = (keys.d || keys.ArrowRight ? 1 : 0) - (keys.a || keys.ArrowLeft ? 1 : 0) + joy.x, vy = (keys.s || keys.ArrowDown ? 1 : 0) - (keys.w || keys.ArrowUp ? 1 : 0) + joy.y;
     const L = Math.hypot(vx, vy);
@@ -124,9 +125,11 @@ function stopLive() { if (poll) clearInterval(poll); poll = null; S.link = false
 function liveMeas(assumedZ) {
   const now = performance.now(), maxR = Math.hypot(S.W, S.H, S.Z) * 1.2;
   return S.anchors.map(a => {
-    const v = S.samples.filter(m => m.b === a.b && m.t > now - RADIO.winMs).map(m => m.rssi); if (!v.length) return null;
-    const rssi = rssiLevel(v), r3 = rangeFrom(rssi, a.p1 != null ? a.p1 : S.rssi1m, a.n || S.pn, maxR), dz = (a.z || 0) - assumedZ;
-    return { r: Math.sqrt(Math.max(0.0025, r3 * r3 - dz * dz)), r3, rssi: Math.round(rssi), nlos: false, d3: null };
+    const f = RF[a.b] || (RF[a.b] = new RangeFilter()), still = S.rxStill && !(TELE[a.b] && S.clock - TELE[a.b].t < 3 && TELE[a.b].moving);
+    const fresh = S.samples.filter(m => m.b === a.b && m.t > (f.lastT || 0)).sort((p, q) => p.t - q.t); fresh.forEach(m => f.push(m.rssi, m.t / 1000, still)); if (fresh.length) f.lastT = fresh[fresh.length - 1].t;
+    if (f.x == null || now - (f.lastT || 0) > 2000) return null;
+    const rr = f.range(a.p1 != null ? a.p1 : S.rssi1m, a.n || S.pn, maxR), r3 = rr.r, dz = (a.z || 0) - assumedZ;
+    return { r: Math.sqrt(Math.max(0.0025, r3 * r3 - dz * dz)), r3, shown: rr.shown, sd: rr.sd, rssi: Math.round(f.x), nlos: false, d3: null };
   });
 }
 function setMode(m) {
@@ -220,7 +223,7 @@ function updateBeacons() {
   const c = cur, rows = document.querySelectorAll('#bt tr'); if (!c) return;
   S.all.forEach((a, i) => {
     const tr = rows[i]; if (!tr) return; const j = S.anchors.indexOf(a), m = j >= 0 ? c.meas[j] : null, t = j >= 0 && c.out ? c.out.trust[j] : null;
-    tr.querySelector('.c-r').textContent = m ? m.rssi + ' dBm' : '–'; tr.querySelector('.c-d').textContent = m ? fmtDist(m.r3) : '–';
+    tr.querySelector('.c-r').textContent = m ? m.rssi + ' dBm' : '–'; tr.querySelector('.c-d').textContent = m ? fmtDist(m.shown != null ? m.shown : m.r3) : '–'; tr.querySelector('.c-d').title = m && m.sd != null ? '± ' + fmtDist(m.sd) + ' (steady range filter)' : '';
     const bar = tr.querySelector('.tb i'); bar.style.width = (t != null && m ? Math.round(t * 100) : 0) + '%'; bar.style.background = trustCol(t || 0); tr.title = j >= 0 && c.out ? c.out.reasons[j] || '' : '';
     const d = tr.querySelector('.hd'); d.className = 'hd'; d.title = '';
     tr.querySelectorAll('input[type=number]').forEach(inp => { const v = a[inp.dataset.k].toFixed(1); if (inp !== document.activeElement && inp.value !== v) inp.value = v; });   /* follow anchor drags in the view */
@@ -251,10 +254,12 @@ function tick() {
   const truth = live ? (simTruth ? S.phoneTruth.slice() : null) : S.pos.slice(), zTrue = S.calib != null && !live ? S.all[S.calib].z : S.zDev, assumed = S.calib != null && !live ? zTrue : S.zKnow ? S.zDev : S.zAssume;
   S.clock += dt; if (canWalk()) moveBeacons(dt); beaconSense(live);
   const real = S.anchors.map(a => a.tx === a.x && a.ty === a.y ? a : { ...a, x: a.tx, y: a.ty });   /* radio uses where the beacon REALLY is; the engine only knows its believed position */
+  const mot = rxMotion(live, truth); S.rxStill = !!(mot && mot.still); eng.loc.motion = mot;
   let meas = live ? liveMeas(assumed) : measure3D(truth, zTrue, assumed, real, radioCfg(), eng.rng, wallsBetween);
+  if (!live && S.model === 'rssi') meas = steadyDemo(meas, assumed);
   if (S.shield) meas = meas.map(() => null);
   S.assets.step(dt, real, radioCfg(), S.shieldSet);
-  if (!live) meas.forEach((m, i) => { if (m) S.samples.push({ b: S.anchors[i].b, rssi: m.rssi, t: now }); });   /* demo packets feed the same health/calibration code */
+  if (!live) meas.forEach((m, i) => { if (m) S.samples.push({ b: S.anchors[i].b, rssi: m.raw != null ? m.raw : m.rssi, t: now }); });   /* demo packets feed the same health/calibration code */
   S.samples.forEach(m => { if (m.t > now - 400) S.heard[m.b] = Math.max(S.heard[m.b] || 0, m.t); }); S.samples = S.samples.filter(m => m.t > now - 6000);
   const ls = lsFix(S.anchors, meas, eng.ls); if (ls) eng.ls = ls; const kf = eng.kf.update(ls, dt);
   eng.loc.sigma = engSigma(); const out = eng.loc.step(meas, dt); eng.t += dt;

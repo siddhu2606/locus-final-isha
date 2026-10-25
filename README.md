@@ -25,6 +25,9 @@ Like LOCUS Trio, every beacon phone also **listens to the other beacons** and re
 
 Tested in simulation (`node scripts/test_beaconmove.js`, `node scripts/test_carry_browser.js`): a beacon carried 5 m ends 0.2-0.3 m from its true spot; while walking it stays within about 0.8 m; median 0.3-0.6 m in the open room, Home, Office and Hospital blueprints. Needs at least 2 beacons that stay put (1.2 m with only 2). On the emulator, 12 shakes gave 12 steps and the moving flag. Not yet tried with real phones being carried.
 
+## Steady when still, live when moving
+The receiver phone reads its own motion sensors too. **Still:** LOCUS holds its position and keeps averaging, so the dot does not wander (3-4 cm jitter in the demo room). **Walking:** its steps and compass move the estimate and Bluetooth corrects the drift. Each beacon's distance goes through a steady-range filter (Kalman on RSSI, outlier rejection) that averages longer while both phones are still; the shown value only changes when it really moves by 10 cm or more. Demo room (5 x 4 m): position error 0.3 m median standing or walking; beacon distance 0.17 m median after a stop. Physics limit: one dB of RSSI is about 10 % of the distance, so 10 cm holds near the beacon and after a few seconds of standing still, not instantly at 5 m.
+
 ## Distance fix (13 cm read as 3.2 m)
 A phone that really reads −70 dBm at 13 cm is called 3.16 m away if we assume the textbook −59 dBm at 1 m. Phones differ by 10 dB or more, so every beacon is now **calibrated at a known distance**: 10 cm, 50 cm, 1 m or 2 m (Beacons tab, or **Cal** on the phone). One distance sets the beacon's RSSI at 1 m; two distances also fit the fade exponent *n*. Ranges under 1 m are shown in cm. Tested: after calibration the same −70 dBm reads **13 cm**.
 

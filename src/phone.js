@@ -14,7 +14,15 @@ const P = {
 };
 let eng = null, rng = rngMake(5), asim = null;
 /* carried beacons: each beacon phone's own telemetry (moving, steps, compass, what it hears) arrives inside its packet */
-const BMV = new BeaconMover(), TELE = {}; let clock = 0;
+const BMV = new BeaconMover(), TELE = {}, RFP = {}, RXM = { tele: null, pend: 0, last: null }; let clock = 0;
+/* this receiver's own motion: still -> hold and average; walking -> steps + compass move the estimate (sensors in the Android app; the simulation uses its true path) */
+function rxMotion() {
+  if (P.src === 'sim') { const l = RXM.last; RXM.last = P.truth.slice(); if (!l) return { still: true }; const dx = P.truth[0] - l[0], dy = P.truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return { still: true }; const sc = 1 + 0.05 * rng.g(), an = 0.09 * rng.g(); return { d: [(dx * Math.cos(an) - dy * Math.sin(an)) * sc, (dx * Math.sin(an) + dy * Math.cos(an)) * sc] }; }
+  const m = RXM.tele; if (!m || clock - m.t > 3) return null;
+  if (!m.moving) { RXM.pend = 0; return { still: true }; }
+  if (RXM.pend > 0 && m.head != null) { const d = RXM.pend * 0.65, br = (m.head - (P.mapUp || 0)) * Math.PI / 180; RXM.pend = 0; return { d: [d * Math.sin(br), -d * Math.cos(br)] }; }
+  return null;
+}
 /* ---------- space + beacons ---------- */
 function defaultAnchors() {
   if (P.space === 'warehouse') return ANCHORS.map((a, i) => [i + 1, a.x, a.y, i % 2 ? 0.9 : 2.6]);
@@ -28,7 +36,7 @@ function setupSpace(c) {
   const list = c ? c.anchors : defaultAnchors();
   P.anchors = list.map(q => ({ id: 'A' + q[0], b: q[0], x: q[1], y: q[2], z: q[3], p1: q[4] != null ? q[4] : null, n: q[5] || null, tx: q[6] != null ? q[6] : q[1], ty: q[7] != null ? q[7] : q[2] }));
   P.anchors.forEach(a => { const k = P.cal[a.b]; if (a.p1 == null && k) { a.p1 = k.p1; a.n = k.n; } });
-  BMV.reset();
+  BMV.reset(); Object.keys(RFP).forEach(k => delete RFP[k]);
   eng = new Locus(P.anchors, { N: 300, sigma: P.space === 'hospital' ? 0.6 : 0.5, rng: rngMake(11), inflate: 2.0, scorer: typeof trustPredict === 'function' ? trustPredict : null, mode: P.scorer });
   asim = new AssetSim(P.space, P.W, P.H, 77);
   if (!P.truth || P.truth[0] > P.W || P.truth[1] > P.H) P.truth = P.space === 'hospital' ? [3, 12] : [P.W / 2, P.H / 2];
@@ -37,9 +45,10 @@ function setupSpace(c) {
 const SIGKEY = () => P.anchors.map(a => [a.b, a.x, a.y, a.z, a.p1, a.n].join(',')).join('|') + P.space + P.W + P.H;
 /* ---------- radio input ---------- */
 window.__bleBatch = arr => { const now = performance.now(); (typeof arr === 'string' ? JSON.parse(arr) : arr).forEach(q => { if (q.length >= 12) { const pe = {}; for (let k = 0; k < 6; k++) if (q[6 + k]) pe[k + 1] = q[6 + k]; TELE[q[0]] = { moving: !!(q[3] & 1), steps: q[4], head: q[3] & 2 ? q[5] * 2 : null, peers: pe, f: q[3], raw: q[5], t: clock }; } P.samples.push({ b: q[0], rssi: q[1], t: now, h: q[2] }); P.heard[q[0]] = now; Link.queue(q[0], q[1], q[2]); }); };
-window.__nativeEvent = e => { e = typeof e === 'string' ? JSON.parse(e) : e; if (e.type === 'self') selfStatus(e); else if (e.type === 'speech') onSpeech(e.text); else if (e.type === 'speechEnd') micOff(); else if (e.type === 'status') status(e.text); else if (e.type === 'adv') { P.adv = !!e.on; $('bstat').textContent = e.text; $('bpulse').classList.toggle('on', P.adv); } };
+window.__nativeEvent = e => { e = typeof e === 'string' ? JSON.parse(e) : e; if (e.type === 'self' && P.role === 'rx') { const o = RXM.tele; if (o && o.steps != null && e.moving) { const k = (e.steps - o.steps + 256) % 256; if (k > 0 && k <= 6) RXM.pend += k; } RXM.tele = { moving: !!e.moving, steps: e.steps, head: e.head == null ? null : e.head, t: clock }; } else if (e.type === 'self') selfStatus(e); else if (e.type === 'speech') onSpeech(e.text); else if (e.type === 'speechEnd') micOff(); else if (e.type === 'status') status(e.text); else if (e.type === 'adv') { P.adv = !!e.on; $('bstat').textContent = e.text; $('bpulse').classList.toggle('on', P.adv); } };
 function simRadio(dt) {   /* this phone walks the floor; every beacon's RSSI is simulated from its true position (10 packets/s) */
   const W = P.W, H = P.H, path = P.space === 'warehouse' ? WAYPOINTS : P.space === 'hospital' ? [[3, 12], [15, 12], [15, 4], [15, 12], [25, 12], [25, 4], [25, 12], [36, 12], [36, 19.5], [36, 12], [27, 12], [27, 19.5], [27, 12], [6, 12], [6, 19.5], [6, 12]] : [[.8, .8], [W - .8, .8], [W - .8, H - .8], [.8, H - .8]];
+  if (P.wait > 0 && !P.calib && !P.tgt) { P.wait -= dt; return simPackets(P.zDev); }
   let goal = P.tgt, zT = P.zDev;
   if (P.calib) { const a = P.anchors.find(q => q.b === P.calib.b), cx = W / 2 - a.x, cy = H / 2 - a.y, L = Math.hypot(cx, cy) || 1; P.truth = [a.x + cx / L * P.calib.d, a.y + cy / L * P.calib.d]; zT = a.z; goal = null; }
   else if (!P.tgt && P.space !== 'hospital' && P.space !== 'warehouse' && WALLS.length > 4) {   /* room with walls: zone to zone through the doors */
@@ -47,17 +56,22 @@ function simRadio(dt) {   /* this phone walks the floor; every beacon's RSSI is 
     const tg = P.route[0], dx = tg[0] - P.truth[0], dy = tg[1] - P.truth[1], d = Math.hypot(dx, dy), sp = 0.8 * dt; if (d <= sp) { P.truth = tg.slice(); P.route.shift(); } else P.truth = [P.truth[0] + dx / d * sp, P.truth[1] + dy / d * sp];
   }
   else { if (P.tgt && P.space !== 'hospital' && P.space !== 'warehouse' && WALLS.length > 4 && !P.troute) P.troute = gridRoute(P.truth, P.tgt, W, H); if (P.troute && P.troute.length) goal = P.troute[0]; if (!goal) goal = path[P.wi % path.length]; const dx = goal[0] - P.truth[0], dy = goal[1] - P.truth[1], d = Math.hypot(dx, dy), sp = (P.space === 'hospital' ? 1.3 : 0.8) * dt;
-    if (d <= sp) { P.truth = goal.slice(); if (P.troute && P.troute.length) { P.troute.shift(); if (!P.troute.length) { P.troute = null; P.tgt = null; } } else if (P.tgt) P.tgt = null; else P.wi++; } else if (!crossesWall(P.truth[0], P.truth[1], P.truth[0] + dx / d * sp, P.truth[1] + dy / d * sp)) { P.truth = [P.truth[0] + dx / d * sp, P.truth[1] + dy / d * sp]; } else { P.tgt = null; P.wi++; } }
+    if (d <= sp) { P.wait = 3 + 2 * rng(); P.truth = goal.slice(); if (P.troute && P.troute.length) { P.troute.shift(); if (!P.troute.length) { P.troute = null; P.tgt = null; } } else if (P.tgt) P.tgt = null; else P.wi++; } else if (!crossesWall(P.truth[0], P.truth[1], P.truth[0] + dx / d * sp, P.truth[1] + dy / d * sp)) { P.truth = [P.truth[0] + dx / d * sp, P.truth[1] + dy / d * sp]; } else { P.tgt = null; P.wi++; } }
+  simPackets(zT);
+}
+function simPackets(zT) {
   const cfg = { model: P.model, loss: P.loss, rssi1m: P.rssi1m, n: P.pn, sigma: P.model === 'add' ? P.sigM : 0.6, sigmaDb: P.sigDb, wallDb: 6, obstructDb: 12, driftDb: 6, burst: 0.002, wallBias: P.space === 'hospital' ? 1.8 : 1.2, obstructBias: 2, driftBias: 1.2 };
   const now = performance.now(), real = P.anchors.map(a => a.tx === a.x && a.ty === a.y ? a : { ...a, x: a.tx, y: a.ty }), m = measure3D(P.truth, zT, zT, real, cfg, rng, wallsBetween);   /* beacons that walk: the radio uses where they really are */
   m.forEach((q, i) => { if (!q) return; const b = P.anchors[i].b; P.samples.push({ b, rssi: q.rssi, t: now }); P.heard[b] = now; Link.queue(b, q.rssi, null); });
 }
 function liveMeas() {
   const now = performance.now(), maxR = Math.hypot(P.W, P.H, P.Z) * 1.2;
-  return P.anchors.map(a => {
-    const v = P.samples.filter(m => m.b === a.b && m.t > now - RADIO.winMs).map(m => m.rssi); if (!v.length) return null;
-    const rssi = rssiLevel(v), r3 = rangeFrom(rssi, a.p1 != null ? a.p1 : P.rssi1m, a.n || P.pn, maxR), dz = a.z - P.zDev;
-    return { r: Math.sqrt(Math.max(0.0025, r3 * r3 - dz * dz)), r3, rssi: Math.round(rssi) };
+  return P.anchors.map(a => {   /* every packet through the beacon's steady-range filter (averages while both phones are still) */
+    const f = RFP[a.b] || (RFP[a.b] = new RangeFilter()), tm = TELE[a.b], still = P.rxStill && !(tm && clock - tm.t < 3 && tm.moving);
+    const fresh = P.samples.filter(m => m.b === a.b && m.t > (f.lastT || 0)).sort((x, y) => x.t - y.t); fresh.forEach(m => f.push(m.rssi, m.t / 1000, still)); if (fresh.length) f.lastT = fresh[fresh.length - 1].t;
+    if (f.x == null || now - (f.lastT || 0) > 2000) return null;
+    const rr = f.range(a.p1 != null ? a.p1 : P.rssi1m, a.n || P.pn, maxR), r3 = rr.r, dz = a.z - P.zDev;
+    return { r: Math.sqrt(Math.max(0.0025, r3 * r3 - dz * dz)), r3, shown: rr.shown, sd: rr.sd, rssi: Math.round(f.x) };
   });
 }
 /* ---------- 10 Hz loop ---------- */
@@ -72,6 +86,7 @@ function tick() {
     Object.keys(TELE).forEach(b => { const m = TELE[b]; if (clock - m.t < 4) BMV.tele(+b, clock, m); });
     BMV.step(P.anchors.map(a => ({ b: a.b, x: a.x, y: a.y, z: a.z })), clock, P.W, P.H, wallsBetween).forEach(u => { const i = P.anchors.findIndex(a => a.b === u.b); if (i < 0) return; eng.moveAnchor(i, u.x, u.y, u.sd); P.anchors[i].tx = u.x; P.anchors[i].ty = u.y; P.anchors[i].why = u.why; P.anchors[i].whyT = clock; });
   }
+  const mot = rxMotion(); P.rxStill = !!(mot && mot.still); eng.motion = mot;
   P.meas = liveMeas(); eng.mode = P.scorer; P.out = eng.step(P.meas, dt);
   P.me = P.out && P.meas.some(Boolean) ? { pos: P.out.pos, zone: zoneOf(P.space, P.out.pos[0], P.out.pos[1], P.W, P.H) } : null;
   asim.step(dt, P.anchors, { model: P.model, loss: P.loss, rssi1m: P.rssi1m, n: P.pn, sigma: P.model === 'add' ? P.sigM : 0.6, sigmaDb: P.sigDb, wallDb: 6, wallBias: 1.8 }, null);
@@ -86,7 +101,7 @@ function alerts() {
 
 /* ---------- link to the laptop: this phone hosts, the laptop joins with the code ---------- */
 const Link = (() => {
-  let relay = null, code = null, buf = [], sendT = 0, btT = 0, lastRx = 0, helloT = 0;
+  let relay = null, code = null, buf = [], sendT = 0, btT = 0, meT = 0, lastRx = 0, helloT = 0;
   const live = () => !!relay && relay.on && performance.now() - lastRx < 6000;
   function start() {
     if (relay) return; code = LSget().code || String(100000 + Math.floor(Math.random() * 900000)); LSset({ code }); $('code').textContent = code.slice(0, 3) + ' ' + code.slice(3);
@@ -111,6 +126,7 @@ const Link = (() => {
     if (P.linked && !live()) { P.linked = false; P.cfg = null; pill('warn', 'Code ' + code); }
     if (!live()) { buf = []; return; }
     if (now - helloT > 3000) { helloT = now; send({ t: 'hello', device: NATIVE ? (NATIVE.deviceName ? NATIVE.deviceName() : 'Android') : (navigator.userAgent.match(/\(([^;)]+)/) || [0, 'browser'])[1], src: P.src }); }
+    if (P.src === 'ble' && RXM.tele && now - meT >= 250) { meT = now; send({ t: 'me', m: RXM.tele.moving ? 1 : 0, s: RXM.tele.steps, h: RXM.tele.head }); }
     if (now - btT >= 500) { btT = now; const b = {}; Object.keys(TELE).forEach(k => { const m = TELE[k]; if (clock - m.t < 3) b[k] = [m.f, m.steps, m.raw, m.peers]; }); if (Object.keys(b).length) send({ t: 'bt', b }); }
     if (now - sendT >= 200) { sendT = now; if (buf.length) { send({ t: 's', s: buf, src: P.src }); buf = []; } if (P.src === 'sim' && !P.calib) send({ t: 'truth', p: P.truth }); }
   }
@@ -159,7 +175,7 @@ function renderBeacons() {
 function updateRadar() {
   const now = performance.now(), rows = $('blist').children; if (rows.length !== P.anchors.length) renderBeacons();
   P.anchors.forEach((a, i) => { const tr = $('blist').children[i]; if (!tr) return; const m = P.meas[i], n3 = P.samples.filter(q => q.b === a.b && q.t > now - 3000).length;
-    const tm = TELE[a.b], mov = tm && clock - tm.t < 3 && tm.moving; tr.querySelector('.dot').className = 'dot ' + (mov ? 'mv' : m ? 'ok' : 'bad'); tr.title = mov ? 'moving' : ''; tr.querySelector('.r').textContent = m ? m.rssi : '–'; tr.querySelector('.d').textContent = m ? fmtDist(m.r3) : '–'; tr.querySelector('.p').textContent = (n3 / 3).toFixed(0); tr.children[1].textContent = a.z.toFixed(1) + ' m'; });
+    const tm = TELE[a.b], mov = tm && clock - tm.t < 3 && tm.moving; tr.querySelector('.dot').className = 'dot ' + (mov ? 'mv' : m ? 'ok' : 'bad'); tr.title = mov ? 'moving' : ''; tr.querySelector('.r').textContent = m ? m.rssi : '–'; tr.querySelector('.d').textContent = m ? fmtDist(m.shown != null ? m.shown : m.r3) : '–'; tr.querySelector('.p').textContent = (n3 / 3).toFixed(0); tr.children[1].textContent = a.z.toFixed(1) + ' m'; });
   const o = P.out; $('k-zone').textContent = P.me ? P.me.zone.replace('Ward B · ', '') : '–'; $('k-unc').textContent = o && P.me ? fmtDist(o.ell.a) : '–'; $('k-n').textContent = P.meas.filter(Boolean).length + ' / ' + P.anchors.length;
   const nc = P.anchors.filter(a => a.p1 == null).length;
   const mvn = P.anchors.filter(a => a.why && clock - a.whyT < 6).map(a => 'Beacon ' + a.b + ' moving: ' + a.why + '. ').join('');

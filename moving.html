@@ -272,11 +272,19 @@ class Locus {
     const A = this.anchors, r = this.rng, N = this.N, sg = this.sigma;
     if (!this.inited) { if (!meas.some(Boolean)) return null; this._init(meas); }
     /* 1. predict (motion history) */
+    /* motion from the phone's own sensors, when known: {still: true} -> particles stay put (readings are averaged, no wandering);
+       {d: [dx, dy]} -> the step + compass displacement since the last reading. Unknown (null) -> the random-walk model below. */
+    const mot = this.motion, md = mot && mot.d ? Math.hypot(mot.d[0], mot.d[1]) : 0;
     for (let i = 0; i < N; i++) {
       const ox = this.px[i], oy = this.py[i];
+      let nx, ny;
+      if (mot && mot.still) { this.vx[i] = 0; this.vy[i] = 0; nx = ox + r.g() * 0.004; ny = oy + r.g() * 0.004; }
+      else if (mot && mot.d) { const j = 0.03 + 0.2 * md; nx = ox + mot.d[0] + r.g() * j; ny = oy + mot.d[1] + r.g() * j; this.vx[i] = mot.d[0] / dt; this.vy[i] = mot.d[1] / dt; }
+      else {
       this.vx[i] = this.vx[i] * 0.96 + r.g() * 0.28; this.vy[i] = this.vy[i] * 0.96 + r.g() * 0.28;
       const sp = Math.hypot(this.vx[i], this.vy[i]); if (sp > 2.2) { this.vx[i] *= 2.2 / sp; this.vy[i] *= 2.2 / sp; }
-      let nx = ox + this.vx[i] * dt + r.g() * 0.05, ny = oy + this.vy[i] * dt + r.g() * 0.05;
+      nx = ox + this.vx[i] * dt + r.g() * 0.05; ny = oy + this.vy[i] * dt + r.g() * 0.05;
+      }
       if (nx < 0 || ny < 0 || nx > FLOOR.w || ny > FLOOR.h || crossesWall(ox, oy, nx, ny)) { nx = ox; ny = oy; this.vx[i] *= -0.2; this.vy[i] *= -0.2; this.w[i] *= 0.2; }
       this.px[i] = nx; this.py[i] = ny;
     }
@@ -330,7 +338,7 @@ class Locus {
     let sw = 0; const eps = 0.04;
     for (let p = 0; p < N; p++) {
       let lw = Math.log(this.w[p] + 1e-300);
-      for (let i = 0; i < A.length; i++) { const m = meas[i]; if (!m || !usable[i]) continue; const t = relocal ? Math.max(this.trust[i], 0.45) : this.trust[i]; if (t < 0.08) continue; const kk = kAt(this.kg[i], this.px[p], this.py[p]), si = Math.sqrt(sg * sg / t + Math.pow(kk * 0.8, 2) + (A[i].sd || 0) * (A[i].sd || 0)) + 0.15, d = Math.hypot(this.px[p] - A[i].x, this.py[p] - A[i].y) + kk * this.wallMu, z = (m.r - d) / si; lw += Math.log((1 - eps) * Math.exp(-0.5 * z * z) / si + eps / 25); }
+      for (let i = 0; i < A.length; i++) { const m = meas[i]; if (!m || !usable[i]) continue; const t = relocal ? Math.max(this.trust[i], 0.45) : this.trust[i]; if (t < 0.08) continue; const kk = kAt(this.kg[i], this.px[p], this.py[p]), si = Math.sqrt(sg * sg / t + Math.pow(kk * 0.8, 2) + (A[i].sd || 0) * (A[i].sd || 0)) + 0.15, d = Math.hypot(this.px[p] - A[i].x, this.py[p] - A[i].y) + kk * this.wallMu, z = (m.r - d) / si; lw += (mot && mot.still ? 0.35 : 1) * Math.log((1 - eps) * Math.exp(-0.5 * z * z) / si + eps / 25); }
       this.w[p] = Math.exp(lw); sw += this.w[p];
     }
     if (!(sw > 0)) { this.w.fill(1 / N); sw = 1; }
@@ -347,7 +355,7 @@ class Locus {
     /* 6. resample + roughen */
     if (ess < N * 0.6) {
       const nx = new Float64Array(N), ny = new Float64Array(N), nvx = new Float64Array(N), nvy = new Float64Array(N); let c = this.w[0], idx = 0; const u0 = r() / N;
-      for (let j = 0; j < N; j++) { const u = u0 + j / N; while (u > c && idx < N - 1) { idx++; c += this.w[idx]; } nx[j] = this.px[idx] + r.g() * 0.07; ny[j] = this.py[idx] + r.g() * 0.07; nvx[j] = this.vx[idx]; nvy[j] = this.vy[idx]; }
+      for (let j = 0; j < N; j++) { const u = u0 + j / N; while (u > c && idx < N - 1) { idx++; c += this.w[idx]; } const rough = mot && mot.still ? 0.012 : 0.07; nx[j] = this.px[idx] + r.g() * rough; ny[j] = this.py[idx] + r.g() * rough; nvx[j] = this.vx[idx]; nvy[j] = this.vy[idx]; }
       this.px = nx; this.py = ny; this.vx = nvx; this.vy = nvy; this.w.fill(1 / N);
     }
     return out;

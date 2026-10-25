@@ -535,11 +535,19 @@ class Locus {
     const A = this.anchors, r = this.rng, N = this.N, sg = this.sigma;
     if (!this.inited) { if (!meas.some(Boolean)) return null; this._init(meas); }
     /* 1. predict (motion history) */
+    /* motion from the phone's own sensors, when known: {still: true} -> particles stay put (readings are averaged, no wandering);
+       {d: [dx, dy]} -> the step + compass displacement since the last reading. Unknown (null) -> the random-walk model below. */
+    const mot = this.motion, md = mot && mot.d ? Math.hypot(mot.d[0], mot.d[1]) : 0;
     for (let i = 0; i < N; i++) {
       const ox = this.px[i], oy = this.py[i];
+      let nx, ny;
+      if (mot && mot.still) { this.vx[i] = 0; this.vy[i] = 0; nx = ox + r.g() * 0.004; ny = oy + r.g() * 0.004; }
+      else if (mot && mot.d) { const j = 0.03 + 0.2 * md; nx = ox + mot.d[0] + r.g() * j; ny = oy + mot.d[1] + r.g() * j; this.vx[i] = mot.d[0] / dt; this.vy[i] = mot.d[1] / dt; }
+      else {
       this.vx[i] = this.vx[i] * 0.96 + r.g() * 0.28; this.vy[i] = this.vy[i] * 0.96 + r.g() * 0.28;
       const sp = Math.hypot(this.vx[i], this.vy[i]); if (sp > 2.2) { this.vx[i] *= 2.2 / sp; this.vy[i] *= 2.2 / sp; }
-      let nx = ox + this.vx[i] * dt + r.g() * 0.05, ny = oy + this.vy[i] * dt + r.g() * 0.05;
+      nx = ox + this.vx[i] * dt + r.g() * 0.05; ny = oy + this.vy[i] * dt + r.g() * 0.05;
+      }
       if (nx < 0 || ny < 0 || nx > FLOOR.w || ny > FLOOR.h || crossesWall(ox, oy, nx, ny)) { nx = ox; ny = oy; this.vx[i] *= -0.2; this.vy[i] *= -0.2; this.w[i] *= 0.2; }
       this.px[i] = nx; this.py[i] = ny;
     }
@@ -593,7 +601,7 @@ class Locus {
     let sw = 0; const eps = 0.04;
     for (let p = 0; p < N; p++) {
       let lw = Math.log(this.w[p] + 1e-300);
-      for (let i = 0; i < A.length; i++) { const m = meas[i]; if (!m || !usable[i]) continue; const t = relocal ? Math.max(this.trust[i], 0.45) : this.trust[i]; if (t < 0.08) continue; const kk = kAt(this.kg[i], this.px[p], this.py[p]), si = Math.sqrt(sg * sg / t + Math.pow(kk * 0.8, 2) + (A[i].sd || 0) * (A[i].sd || 0)) + 0.15, d = Math.hypot(this.px[p] - A[i].x, this.py[p] - A[i].y) + kk * this.wallMu, z = (m.r - d) / si; lw += Math.log((1 - eps) * Math.exp(-0.5 * z * z) / si + eps / 25); }
+      for (let i = 0; i < A.length; i++) { const m = meas[i]; if (!m || !usable[i]) continue; const t = relocal ? Math.max(this.trust[i], 0.45) : this.trust[i]; if (t < 0.08) continue; const kk = kAt(this.kg[i], this.px[p], this.py[p]), si = Math.sqrt(sg * sg / t + Math.pow(kk * 0.8, 2) + (A[i].sd || 0) * (A[i].sd || 0)) + 0.15, d = Math.hypot(this.px[p] - A[i].x, this.py[p] - A[i].y) + kk * this.wallMu, z = (m.r - d) / si; lw += (mot && mot.still ? 0.35 : 1) * Math.log((1 - eps) * Math.exp(-0.5 * z * z) / si + eps / 25); }
       this.w[p] = Math.exp(lw); sw += this.w[p];
     }
     if (!(sw > 0)) { this.w.fill(1 / N); sw = 1; }
@@ -610,7 +618,7 @@ class Locus {
     /* 6. resample + roughen */
     if (ess < N * 0.6) {
       const nx = new Float64Array(N), ny = new Float64Array(N), nvx = new Float64Array(N), nvy = new Float64Array(N); let c = this.w[0], idx = 0; const u0 = r() / N;
-      for (let j = 0; j < N; j++) { const u = u0 + j / N; while (u > c && idx < N - 1) { idx++; c += this.w[idx]; } nx[j] = this.px[idx] + r.g() * 0.07; ny[j] = this.py[idx] + r.g() * 0.07; nvx[j] = this.vx[idx]; nvy[j] = this.vy[idx]; }
+      for (let j = 0; j < N; j++) { const u = u0 + j / N; while (u > c && idx < N - 1) { idx++; c += this.w[idx]; } const rough = mot && mot.still ? 0.012 : 0.07; nx[j] = this.px[idx] + r.g() * rough; ny[j] = this.py[idx] + r.g() * rough; nvx[j] = this.vx[idx]; nvy[j] = this.vy[idx]; }
       this.px = nx; this.py = ny; this.vx = nvx; this.vy = nvy; this.w.fill(1 / N);
     }
     return out;
@@ -779,9 +787,29 @@ function fitCal(pts, nDef) {
   const n = Math.min(4.5, Math.max(1.4, -sxy / sxx / 10)), p1 = my + 10 * n * mx;
   return { p1: Math.round(p1 * 10) / 10, n: Math.round(n * 100) / 100 };
 }
+/* Steady range per beacon: a Kalman filter on the RSSI (dB). While both phones are still it keeps averaging (the error shrinks
+   with every packet, about 0.4 dB after 10 s at 10 packets/s, i.e. +-8 cm at 2 m, +-20 cm at 5 m); when either moves it
+   follows quickly. Single packets more than 3 sigma off (a body passing, a reflection) are dropped, unless they keep coming. */
+class RangeFilter {
+  constructor() { this.x = null; this.P = 0; this.t = null; this.rej = 0; this.shown = null; }
+  push(rssi, t, still) {
+    if (this.x == null) { this.x = rssi; this.P = 16; this.t = t; return; }
+    const dt = Math.max(0, t - this.t); this.t = t; this.P = still ? Math.min(40, this.P + 0.004 * dt) : Math.max(this.P, 9);   /* moving: stay responsive (each packet counts ~36 %) */
+    const R = 16, inn = rssi - this.x;
+    if (inn * inn > 9 * (this.P + R) && ++this.rej < 6) return; this.rej = 0;
+    const K = this.P / (this.P + R); this.x += K * inn; this.P *= 1 - K;
+  }
+  sd() { return Math.sqrt(this.P); }
+  /* range in metres, shown with a deadband: it only changes when the filtered range really moved (>= 10 cm, or 2 sigma) */
+  range(p1, n, maxR) {
+    const r = rangeFrom(this.x, p1, n, maxR), sr = r * Math.LN10 * this.sd() / (10 * n), band = this.P > 3 ? 0.03 : Math.max(0.1, Math.min(0.25, 1.5 * sr));   /* moving: follow; settled: hold within 10 cm */
+    if (this.shown == null || Math.abs(r - this.shown) >= band) this.shown = Math.round(r * 100) / 100;
+    return { r, shown: this.shown, sd: sr };
+  }
+}
 const fmtDist = m => m == null ? '–' : m < 1 ? Math.round(m * 100) + ' cm' : m.toFixed(m < 10 ? 2 : 1) + ' m';
 const CAL_DISTS = [0.1, 0.5, 1, 2];
-if (typeof module !== 'undefined') module.exports = { RADIO, rssiLevel, rangeFrom, fitCal, fmtDist, CAL_DISTS };
+if (typeof module !== 'undefined') module.exports = { RADIO, rssiLevel, rangeFrom, fitCal, fmtDist, CAL_DISTS, RangeFilter };
 /* ===== LOCUS tagged objects: the predefined set of BLE-tagged equipment, the patient tag and a staff badge,
    their home zones, how they move, and a light tracker that locates each one from the same simulated radio. =====
    Positions are given for the 40 x 24 m hospital floor (h) and as fractions of "My room" (f). y grows downward (south). */
@@ -1203,7 +1231,7 @@ function rebuild(keepAnchors) {
   if (S.space === 'room') setRoom(S.W, S.H, S.anchors, partitions(), S.plan.rooms.length ? S.plan.rooms : null);
   S.pos = [Math.min(S.W - .2, Math.max(.2, S.pos[0])), Math.min(S.H - .2, Math.max(.2, S.pos[1]))];
   if (isSite() && (S.pos[0] < 1 || S.pos[1] < 1)) S.pos = [3, 12];
-  newEngine(); resetSense(); S.route = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
+  newEngine(); resetSense(); Object.keys(RF).forEach(k => delete RF[k]); S.route = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
   S.assets = new AssetSim(S.space, S.W, S.H, 77); MT.log.length = 0; MT.b = {}; S.anchors.forEach(a => MT.update(a.id, a.x, -a.y, S.clock, true));
   fitView(); save(); Phone.cfgChanged();
 }
@@ -1246,9 +1274,10 @@ function updateTruth(dt) {
   if (S.calib != null) { const a = S.all[S.calib], rh = S.calD, cx = S.W / 2 - a.x, cy = S.H / 2 - a.y, L = Math.hypot(cx, cy) || 1; S.pos = [a.x + cx / L * rh, a.y + cy / L * rh]; return; }
   if (S.src === 'demo' && S.space === 'room' && S.plan.walls.length) {   /* floor plan with walls: walk zone to zone through the doors */
     if (!S.route || !S.route.length) { const p = demoPath(); demoI %= p.length; S.route = gridRoute(S.pos, p[demoI], S.W, S.H); demoI++; }
-    const tg = S.route[0], b4 = S.pos.slice(); if (moveToward(tg[0], tg[1], spd, dt) || (S.pos[0] === b4[0] && S.pos[1] === b4[1])) S.route.shift();
+    if (S.wait > 0) { S.wait -= dt; return; }
+    const tg = S.route[0], b4 = S.pos.slice(); if (moveToward(tg[0], tg[1], spd, dt) || (S.pos[0] === b4[0] && S.pos[1] === b4[1])) { S.route.shift(); if (!S.route.length) S.wait = 3 + 2 * Math.random(); }
   }
-  else if (S.src === 'demo') { const p = demoPath(); demoI %= p.length; if (moveToward(p[demoI][0], p[demoI][1], spd, dt)) demoI = (demoI + 1) % p.length; }
+  else if (S.src === 'demo') { if (S.wait > 0) { S.wait -= dt; return; } const p = demoPath(); demoI %= p.length; if (moveToward(p[demoI][0], p[demoI][1], spd, dt)) { demoI = (demoI + 1) % p.length; S.wait = 3 + 2 * Math.random(); } }
   else if (S.src === 'touch') {
     let vx = (keys.d || keys.ArrowRight ? 1 : 0) - (keys.a || keys.ArrowLeft ? 1 : 0) + joy.x, vy = (keys.s || keys.ArrowDown ? 1 : 0) - (keys.w || keys.ArrowUp ? 1 : 0) + joy.y;
     const L = Math.hypot(vx, vy);
@@ -1280,9 +1309,11 @@ function stopLive() { if (poll) clearInterval(poll); poll = null; S.link = false
 function liveMeas(assumedZ) {
   const now = performance.now(), maxR = Math.hypot(S.W, S.H, S.Z) * 1.2;
   return S.anchors.map(a => {
-    const v = S.samples.filter(m => m.b === a.b && m.t > now - RADIO.winMs).map(m => m.rssi); if (!v.length) return null;
-    const rssi = rssiLevel(v), r3 = rangeFrom(rssi, a.p1 != null ? a.p1 : S.rssi1m, a.n || S.pn, maxR), dz = (a.z || 0) - assumedZ;
-    return { r: Math.sqrt(Math.max(0.0025, r3 * r3 - dz * dz)), r3, rssi: Math.round(rssi), nlos: false, d3: null };
+    const f = RF[a.b] || (RF[a.b] = new RangeFilter()), still = S.rxStill && !(TELE[a.b] && S.clock - TELE[a.b].t < 3 && TELE[a.b].moving);
+    const fresh = S.samples.filter(m => m.b === a.b && m.t > (f.lastT || 0)).sort((p, q) => p.t - q.t); fresh.forEach(m => f.push(m.rssi, m.t / 1000, still)); if (fresh.length) f.lastT = fresh[fresh.length - 1].t;
+    if (f.x == null || now - (f.lastT || 0) > 2000) return null;
+    const rr = f.range(a.p1 != null ? a.p1 : S.rssi1m, a.n || S.pn, maxR), r3 = rr.r, dz = (a.z || 0) - assumedZ;
+    return { r: Math.sqrt(Math.max(0.0025, r3 * r3 - dz * dz)), r3, shown: rr.shown, sd: rr.sd, rssi: Math.round(f.x), nlos: false, d3: null };
   });
 }
 function setMode(m) {
@@ -1376,7 +1407,7 @@ function updateBeacons() {
   const c = cur, rows = document.querySelectorAll('#bt tr'); if (!c) return;
   S.all.forEach((a, i) => {
     const tr = rows[i]; if (!tr) return; const j = S.anchors.indexOf(a), m = j >= 0 ? c.meas[j] : null, t = j >= 0 && c.out ? c.out.trust[j] : null;
-    tr.querySelector('.c-r').textContent = m ? m.rssi + ' dBm' : '–'; tr.querySelector('.c-d').textContent = m ? fmtDist(m.r3) : '–';
+    tr.querySelector('.c-r').textContent = m ? m.rssi + ' dBm' : '–'; tr.querySelector('.c-d').textContent = m ? fmtDist(m.shown != null ? m.shown : m.r3) : '–'; tr.querySelector('.c-d').title = m && m.sd != null ? '± ' + fmtDist(m.sd) + ' (steady range filter)' : '';
     const bar = tr.querySelector('.tb i'); bar.style.width = (t != null && m ? Math.round(t * 100) : 0) + '%'; bar.style.background = trustCol(t || 0); tr.title = j >= 0 && c.out ? c.out.reasons[j] || '' : '';
     const d = tr.querySelector('.hd'); d.className = 'hd'; d.title = '';
     tr.querySelectorAll('input[type=number]').forEach(inp => { const v = a[inp.dataset.k].toFixed(1); if (inp !== document.activeElement && inp.value !== v) inp.value = v; });   /* follow anchor drags in the view */
@@ -1407,10 +1438,12 @@ function tick() {
   const truth = live ? (simTruth ? S.phoneTruth.slice() : null) : S.pos.slice(), zTrue = S.calib != null && !live ? S.all[S.calib].z : S.zDev, assumed = S.calib != null && !live ? zTrue : S.zKnow ? S.zDev : S.zAssume;
   S.clock += dt; if (canWalk()) moveBeacons(dt); beaconSense(live);
   const real = S.anchors.map(a => a.tx === a.x && a.ty === a.y ? a : { ...a, x: a.tx, y: a.ty });   /* radio uses where the beacon REALLY is; the engine only knows its believed position */
+  const mot = rxMotion(live, truth); S.rxStill = !!(mot && mot.still); eng.loc.motion = mot;
   let meas = live ? liveMeas(assumed) : measure3D(truth, zTrue, assumed, real, radioCfg(), eng.rng, wallsBetween);
+  if (!live && S.model === 'rssi') meas = steadyDemo(meas, assumed);
   if (S.shield) meas = meas.map(() => null);
   S.assets.step(dt, real, radioCfg(), S.shieldSet);
-  if (!live) meas.forEach((m, i) => { if (m) S.samples.push({ b: S.anchors[i].b, rssi: m.rssi, t: now }); });   /* demo packets feed the same health/calibration code */
+  if (!live) meas.forEach((m, i) => { if (m) S.samples.push({ b: S.anchors[i].b, rssi: m.raw != null ? m.raw : m.rssi, t: now }); });   /* demo packets feed the same health/calibration code */
   S.samples.forEach(m => { if (m.t > now - 400) S.heard[m.b] = Math.max(S.heard[m.b] || 0, m.t); }); S.samples = S.samples.filter(m => m.t > now - 6000);
   const ls = lsFix(S.anchors, meas, eng.ls); if (ls) eng.ls = ls; const kf = eng.kf.update(ls, dt);
   eng.loc.sigma = engSigma(); const out = eng.loc.step(meas, dt); eng.t += dt;
@@ -1728,7 +1761,32 @@ function moveBeacons(dt) {
 /* an exact move (drag, typed coordinates, external report): truth = believed */
 /* carried beacons: telemetry (real from the receiver phone, or simulated from the true path) -> BeaconMover -> believed position */
 const BM = new BeaconMover(), BSIM = {}, TELE = {}, BRNG = rngMake(99);   /* own random stream: sensing does not change the tag's radio noise */
-function resetSense() { BM.reset(); Object.keys(BSIM).forEach(k => delete BSIM[k]); Object.keys(TELE).forEach(k => delete TELE[k]); }
+/* ---------- receiver motion + steady ranges ----------
+   The receiver phone reads its own motion sensors too. Still -> LOCUS holds the position and keeps averaging (no wandering dot);
+   walking -> its steps and compass move the estimate and Bluetooth corrects the drift. Demo: the same, from the walker's true path. */
+const RF = {}, RX = { tele: null, pend: 0, last: null };
+function rxMotion(live, truth) {
+  if (!live || (S.phoneSrc === 'sim' && truth)) {
+    if (!truth) return null; const l = RX.last; RX.last = truth.slice(); if (!l) return { still: true };
+    const dx = truth[0] - l[0], dy = truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return { still: true };
+    const sc = 1 + 0.05 * BRNG.g(), an = 0.09 * BRNG.g(); return { d: [(dx * Math.cos(an) - dy * Math.sin(an)) * sc, (dx * Math.sin(an) + dy * Math.cos(an)) * sc] };   /* step length +-5 %, heading +-5 deg */
+  }
+  const m = RX.tele; if (!m || S.clock - m.t > 3) return null;
+  if (!m.moving) { RX.pend = 0; return { still: true }; }
+  if (RX.pend > 0 && m.head != null) { const d = RX.pend * 0.65, br = (m.head - (S.mapUp || 0)) * Math.PI / 180; RX.pend = 0; return { d: [d * Math.sin(br), -d * Math.cos(br)] }; }
+  return null;
+}
+/* demo, realistic radio: the same steady-range filter as with real phones */
+function steadyDemo(meas, assumedZ) {
+  const maxR = Math.hypot(S.W, S.H, S.Z) * 1.2;
+  return S.anchors.map((a, i) => {
+    const f = RF[a.b] || (RF[a.b] = new RangeFilter()), m = meas[i], still = S.rxStill && !a.mv;
+    if (m) { f.push(m.rssi, S.clock, still); f.lastT = S.clock; } if (f.x == null || S.clock - (f.lastT || -9) > 1.5 || !m && S.dead.has(a.id)) return null;
+    const rr = f.range(a.p1 != null ? a.p1 : S.rssi1m, a.n || S.pn, maxR), dz = (a.z || 0) - assumedZ;
+    return { r: Math.sqrt(Math.max(0.0025, rr.r * rr.r - dz * dz)), r3: rr.r, shown: rr.shown, sd: rr.sd, rssi: Math.round(f.x), raw: m ? m.rssi : null, nlos: m ? m.nlos : false, d3: m ? m.d3 : null };
+  });
+}
+function resetSense() { RX.last = null; BM.reset(); Object.keys(BSIM).forEach(k => delete BSIM[k]); Object.keys(TELE).forEach(k => delete TELE[k]); }
 function beaconSense(live) {
   const t = S.clock;
   if (!live || S.phoneSrc === 'sim') { BeaconMover.simulate(BSIM, S.anchors, t, BRNG, S.dead, wallsBetween); S.anchors.forEach(a => { const m = BSIM[a.b].out; BM.tele(a.b, t, m); TELE[a.b] = { ...m, t }; }); }
@@ -1910,6 +1968,7 @@ const Phone = (() => {
     else if (d.t === 'req') { const r = gateRun({ role: d.role, device: d.device, inside: d.inside, poc: d.poc, via: 'phone' }); send({ t: 'ans', id: d.id, allowed: r.allowed, answer: r.answer, text: r.text }); }
     else if (d.t === 'cal') { const i = S.all.findIndex(a => a.b === d.b); if (i >= 0) { addCal(i, d.d, d.rssi); buildTable(); } }
     else if (d.t === 'want') cfgDirty = true;
+    else if (d.t === 'me') { const o = RX.tele; if (o && d.s != null && o.steps != null && d.m) { const k = (d.s - o.steps + 256) % 256; if (k > 0 && k <= 6) RX.pend += k; } RX.tele = { moving: !!d.m, steps: d.s, head: d.h, t: S.clock }; }
     else if (d.t === 'bt') Object.keys(d.b || {}).forEach(k => { const q = d.b[k], m = { moving: !!(q[0] & 1), steps: q[1], head: q[0] & 2 ? q[2] * 2 : null, peers: q[3] || {} }; BM.tele(+k, S.clock, m); TELE[+k] = { ...m, t: S.clock }; });
   }
   function send(m) { return relay ? relay.send(m) : false; }

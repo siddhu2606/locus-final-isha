@@ -73,7 +73,7 @@ public class MainActivity extends Activity {
     private final List<int[]> batch = new ArrayList<>();
     private Runnable afterPerm;
     /* beacon mode: what this beacon senses */
-    private boolean beaconMode = false, moving = false, hasHeading = false;
+    private boolean beaconMode = false, rxSensing = false, moving = false, hasHeading = false;
     private int steps = 0;
     private float heading = 0;
     private long moveUntil = 0, lastPeak = 0;
@@ -229,10 +229,10 @@ public class MainActivity extends Activity {
     /* twice a second: refresh the packet with the latest motion + readings, and show them on the beacon screen */
     private final Runnable beaconTick = new Runnable() {
         @Override public void run() {
-            if (!beaconMode) return;
+            if (!beaconMode && !rxSensing) return;
             tickNo++;
             if (System.currentTimeMillis() > moveUntil) moving = false;
-            try {
+            if (beaconMode) try {
                 if (advSet != null) advSet.setAdvertisingData(adData());
                 else if (useLegacy && advertising && advertiser != null && tickNo % 2 == 0) { advertiser.stopAdvertising(advCb); startLegacy(); }
             } catch (Exception ignored) { }
@@ -241,7 +241,7 @@ public class MainActivity extends Activity {
                 JSONObject pe = new JSONObject(); long now = System.currentTimeMillis(); for (int k = 1; k <= 6; k++) { int r = peerMedian(k, now); if (r != 0) pe.put(String.valueOf(k), r); } o.put("peers", pe);
                 final String js = "window.__nativeEvent&&window.__nativeEvent(" + o + ")"; web.evaluateJavascript(js, null);
             } catch (Exception ignored) { }
-            ui.postDelayed(this, 500);
+            ui.postDelayed(this, beaconMode ? 500 : 250);
         }
     };
     private void stopAdvertising() {
@@ -331,11 +331,14 @@ public class MainActivity extends Activity {
         ScanSettings s = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).setReportDelay(0).build();
         scanner.startScan(null, s, scanCb);
         scanning = true;
+        /* the receiver reads its own motion too: still -> the map holds it steady; walking -> steps + compass move it */
+        if (!rxSensing) { rxSensing = true; startSensors(); ui.removeCallbacks(beaconTick); ui.postDelayed(beaconTick, 250); }
         List<String> ips = SampleServer.ips();
         emit("status", "text", "Listening for real beacons." + (ips.isEmpty() ? "" : " Same-Wi-Fi fallback: http://" + ips.get(0) + ":" + PORT + "/"));
     }
     private void stopReceiver() {
         if (beaconMode) return;   /* the beacon's own listening is stopped with the beacon */
+        if (rxSensing) { rxSensing = false; stopSensors(); }
         try { if (scanner != null && scanning) scanner.stopScan(scanCb); } catch (Exception ignored) { }
         scanning = false;
         if (server != null) { server.stop(); server = null; }

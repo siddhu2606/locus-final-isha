@@ -21,7 +21,32 @@ function moveBeacons(dt) {
 /* an exact move (drag, typed coordinates, external report): truth = believed */
 /* carried beacons: telemetry (real from the receiver phone, or simulated from the true path) -> BeaconMover -> believed position */
 const BM = new BeaconMover(), BSIM = {}, TELE = {}, BRNG = rngMake(99);   /* own random stream: sensing does not change the tag's radio noise */
-function resetSense() { BM.reset(); Object.keys(BSIM).forEach(k => delete BSIM[k]); Object.keys(TELE).forEach(k => delete TELE[k]); }
+/* ---------- receiver motion + steady ranges ----------
+   The receiver phone reads its own motion sensors too. Still -> LOCUS holds the position and keeps averaging (no wandering dot);
+   walking -> its steps and compass move the estimate and Bluetooth corrects the drift. Demo: the same, from the walker's true path. */
+const RF = {}, RX = { tele: null, pend: 0, last: null };
+function rxMotion(live, truth) {
+  if (!live || (S.phoneSrc === 'sim' && truth)) {
+    if (!truth) return null; const l = RX.last; RX.last = truth.slice(); if (!l) return { still: true };
+    const dx = truth[0] - l[0], dy = truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return { still: true };
+    const sc = 1 + 0.05 * BRNG.g(), an = 0.09 * BRNG.g(); return { d: [(dx * Math.cos(an) - dy * Math.sin(an)) * sc, (dx * Math.sin(an) + dy * Math.cos(an)) * sc] };   /* step length +-5 %, heading +-5 deg */
+  }
+  const m = RX.tele; if (!m || S.clock - m.t > 3) return null;
+  if (!m.moving) { RX.pend = 0; return { still: true }; }
+  if (RX.pend > 0 && m.head != null) { const d = RX.pend * 0.65, br = (m.head - (S.mapUp || 0)) * Math.PI / 180; RX.pend = 0; return { d: [d * Math.sin(br), -d * Math.cos(br)] }; }
+  return null;
+}
+/* demo, realistic radio: the same steady-range filter as with real phones */
+function steadyDemo(meas, assumedZ) {
+  const maxR = Math.hypot(S.W, S.H, S.Z) * 1.2;
+  return S.anchors.map((a, i) => {
+    const f = RF[a.b] || (RF[a.b] = new RangeFilter()), m = meas[i], still = S.rxStill && !a.mv;
+    if (m) { f.push(m.rssi, S.clock, still); f.lastT = S.clock; } if (f.x == null || S.clock - (f.lastT || -9) > 1.5 || !m && S.dead.has(a.id)) return null;
+    const rr = f.range(a.p1 != null ? a.p1 : S.rssi1m, a.n || S.pn, maxR), dz = (a.z || 0) - assumedZ;
+    return { r: Math.sqrt(Math.max(0.0025, rr.r * rr.r - dz * dz)), r3: rr.r, shown: rr.shown, sd: rr.sd, rssi: Math.round(f.x), raw: m ? m.rssi : null, nlos: m ? m.nlos : false, d3: m ? m.d3 : null };
+  });
+}
+function resetSense() { RX.last = null; BM.reset(); Object.keys(BSIM).forEach(k => delete BSIM[k]); Object.keys(TELE).forEach(k => delete TELE[k]); }
 function beaconSense(live) {
   const t = S.clock;
   if (!live || S.phoneSrc === 'sim') { BeaconMover.simulate(BSIM, S.anchors, t, BRNG, S.dead, wallsBetween); S.anchors.forEach(a => { const m = BSIM[a.b].out; BM.tele(a.b, t, m); TELE[a.b] = { ...m, t }; }); }
@@ -203,6 +228,7 @@ const Phone = (() => {
     else if (d.t === 'req') { const r = gateRun({ role: d.role, device: d.device, inside: d.inside, poc: d.poc, via: 'phone' }); send({ t: 'ans', id: d.id, allowed: r.allowed, answer: r.answer, text: r.text }); }
     else if (d.t === 'cal') { const i = S.all.findIndex(a => a.b === d.b); if (i >= 0) { addCal(i, d.d, d.rssi); buildTable(); } }
     else if (d.t === 'want') cfgDirty = true;
+    else if (d.t === 'me') { const o = RX.tele; if (o && d.s != null && o.steps != null && d.m) { const k = (d.s - o.steps + 256) % 256; if (k > 0 && k <= 6) RX.pend += k; } RX.tele = { moving: !!d.m, steps: d.s, head: d.h, t: S.clock }; }
     else if (d.t === 'bt') Object.keys(d.b || {}).forEach(k => { const q = d.b[k], m = { moving: !!(q[0] & 1), steps: q[1], head: q[0] & 2 ? q[2] * 2 : null, peers: q[3] || {} }; BM.tele(+k, S.clock, m); TELE[+k] = { ...m, t: S.clock }; });
   }
   function send(m) { return relay ? relay.send(m) : false; }
