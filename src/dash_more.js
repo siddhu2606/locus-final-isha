@@ -7,7 +7,7 @@
 const MT = new MoveTracker({ threshold: 0.1, smoothing: 0.5, trailLen: 15, recentSec: 10, speedSec: 1, settleSec: 0.8, turnDeg: 35, arrowHoldSec: 8, logMax: 120 });
 /* walking is simulated motion, so it is offered only when the radio is simulated too (Demo, or a linked phone in Simulation mode) */
 const canWalk = () => S.mode !== 'live' || S.phoneSrc === 'sim';
-const MVR = () => S.space === 'hospital' ? 3 : Math.max(0.5, Math.min(1.2, 0.25 * Math.min(S.W, S.H)));
+const MVR = () => S.space !== 'room' ? 3 : Math.max(0.5, Math.min(1.2, 0.25 * Math.min(S.W, S.H)));
 function moveBeacons(dt) {
   const rr = eng.rng;
   S.anchors.forEach((a, i) => {
@@ -191,7 +191,7 @@ const Phone = (() => {
   }
   function send(m) { return relay ? relay.send(m) : false; }
   function leave(quiet) { if (relay) relay.close(); relay = null; if (S.linkKind === 'code') { S.link = false; S.linkKind = null; S.phoneTruth = null; srcPill(); } if (!quiet) { say('Not linked.'); code = null; $('b-unpair').disabled = true; } }
-  function cfg() { return { space: S.space, W: S.W, H: S.H, Z: S.Z, model: S.model, sigDb: S.sigDb, sigM: S.sigM, loss: S.loss, rssi1m: S.rssi1m, pn: S.pn, scorer: S.scorer, anchors: S.anchors.map(a => [a.b, +a.x.toFixed(2), +a.y.toFixed(2), +a.z.toFixed(2), a.p1, a.n, +a.tx.toFixed(2), +a.ty.toFixed(2)]) }; }
+  function cfg() { return { space: S.space, walls: S.space === 'room' ? partitions() : [], rooms: S.space === 'room' ? S.plan.rooms : [], W: S.W, H: S.H, Z: S.Z, model: S.model, sigDb: S.sigDb, sigM: S.sigM, loss: S.loss, rssi1m: S.rssi1m, pn: S.pn, scorer: S.scorer, anchors: S.anchors.map(a => [a.b, +a.x.toFixed(2), +a.y.toFixed(2), +a.z.toFixed(2), a.p1, a.n, +a.tx.toFixed(2), +a.ty.toFixed(2)]) }; }
   function pump(now) {
     if (!relay || !relay.on) return;
     if (now - joinT > 2000) { joinT = now; send({ t: 'join' }); }
@@ -206,6 +206,7 @@ const Phone = (() => {
 
 /* ---------- part-2 UI wiring ---------- */
 function bindMore() {
+  $('b-rail-lay') && ($('b-rail-lay').onclick = () => document.querySelector('.tabs button[data-t=beacons]').click());
   document.querySelectorAll('.rail a[data-tab]').forEach(l => l.addEventListener('click', () => { const b = document.querySelector('.tabs button[data-t=' + l.dataset.tab + ']'); if (b) b.click(); }));
   $('b-pair').onclick = () => Phone.connect($('i-code').value); $('i-code').onkeydown = e => { if (e.key === 'Enter') Phone.connect($('i-code').value); };
   $('b-unpair').onclick = () => Phone.leave();

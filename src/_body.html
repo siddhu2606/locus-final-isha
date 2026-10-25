@@ -28,6 +28,7 @@
 .isha{display:flex;flex-direction:column;gap:8px}.isha form{display:flex;gap:6px}.isha input{flex:1;height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-size:13.5px;min-width:0}
 .isha-a{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}.isha-a .q{align-self:flex-end;background:var(--aqua-xl);border-radius:12px 12px 2px 12px;padding:6px 10px;font-size:12.5px;font-weight:600}.isha-a .a{background:var(--em-l);color:var(--em-dd);border-radius:12px 12px 12px 2px;padding:7px 10px;font-size:13px;line-height:1.4}
 .codein{display:flex;gap:6px}.codein input{flex:1;min-width:0;height:44px;border:1.5px solid var(--aqua-l);border-radius:12px;text-align:center;font:700 22px Sora;letter-spacing:.3em}
+.bps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.bp{border:1.5px solid var(--line);border-radius:14px;padding:9px 10px;text-align:left;background:#fff;display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:1px;align-items:center}.bp:hover{border-color:var(--em)}.bp.on{border-color:var(--em);background:var(--em-l)}.bp i{font-style:normal;font-size:20px;grid-row:span 2}.bp b{font-size:13.5px}.bp span{font-size:11.5px;color:var(--ink3);line-height:1.3}.bp em{grid-column:2;font-style:normal;font-size:10.5px;font-weight:700;color:var(--em-dd);text-transform:uppercase;letter-spacing:.05em}.zchip{display:inline-flex;align-items:center;gap:4px;background:var(--aqua-xl);border-radius:99px;padding:3px 4px 3px 10px;font-size:12.5px;font-weight:600}.zchip button{width:20px;height:20px;border-radius:50%;background:#fff;font-weight:700;color:var(--ink2)}
 .bt th:nth-child(1){width:30px}.bt th:nth-child(2){width:24px}.bt th:nth-child(3),.bt th:nth-child(4){width:46px}.bt th:nth-child(5){width:42px}.bt th:nth-child(6){width:56px}.bt th:nth-child(7){width:54px}.bt th:nth-child(9){width:46px}.bt input[type=number]{width:100%;padding:0 2px;-moz-appearance:textfield;appearance:textfield;text-align:center}.bt input::-webkit-inner-spin-button,.bt input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.bt .cal{width:44px;padding:0 2px}
 </style>
 </head>
@@ -36,7 +37,7 @@
   <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C3E6"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><path d="M16 2c-5.5 0-10 4.4-10 9.8C6 19 16 30 16 30s10-11 10-18.2C26 6.4 21.500 2 16 2z" fill="url(#lg)"/><circle cx="16" cy="12" r="4" fill="#fff"/></svg>LOCUS <small>ISHA dashboard</small></div>
   <div class="hl"><span class="pill" id="p-src"><i></i><span>Demo · auto loop</span></span><span class="pill" id="p-mode"><i></i><span>Simulated radio</span></span><a class="pill" href="phone.html">Phone app</a><a class="pill" href="./">Home</a></div>
 </div>
-<nav class="rail" aria-label="Sections"><a href="#live"><i>01</i>Live 3D</a><a href="#trust"><i>02</i>Trust scorer</a><a href="#alerts"><i>03</i>Off radar + self-check</a><a href="#access"><i>04</i>Access · 3 gates</a><a href="#panel" data-tab="objects"><i>05</i>Objects + ISHA</a><a href="#panel" data-tab="space"><i>06</i>Moving beacons</a><a href="moving.html"><i>07</i>Moving lab</a><a href="knowledge.html"><i>08</i>Knowledge</a></nav></header>
+<nav class="rail" aria-label="Sections"><a href="#live"><i>01</i>Live 3D</a><a href="#trust"><i>02</i>Trust scorer</a><a href="#alerts"><i>03</i>Off radar + self-check</a><a href="#access"><i>04</i>Access · 3 gates</a><a href="#panel" data-tab="objects"><i>05</i>Objects + ISHA</a><a href="#panel" data-tab="beacons"><i>06</i>Layouts</a><a href="#panel" data-tab="space"><i>07</i>Moving beacons</a><a href="moving.html"><i>08</i>Moving lab</a><a href="knowledge.html"><i>09</i>Knowledge</a></nav></header>
 
 <div class="layout">
   <div class="lcol">
@@ -156,16 +157,31 @@ position fix      weight_i = trust_i²       share_i = weight_i / Σ weight</pre
         <div class="gcal" id="gcal"><b id="g-title"></b><div class="note" id="g-text"></div><div class="prog"><i id="g-bar"></i></div><div class="row"><button class="btn pri sm" id="g-go">Measure (3 s)</button><button class="btn sm" id="g-skip">Skip</button><button class="btn sm" id="g-stop">Stop</button></div></div>
         <div class="note" id="n-why">Beacon # is the ID you pick in the app on each beacon phone. Untick one to test losing a beacon.</div>
       </div>
+      <div class="card" id="layouts">
+        <h4>Saved layouts &amp; blueprints</h4>
+        <div class="bps" id="bp-list"></div>
+        <div class="row"><input type="text" id="l-name" placeholder="Name" maxlength="40" style="flex:1;min-width:120px;height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-weight:600"><button class="btn pri sm" id="l-save">Save</button><button class="btn sm" id="l-del">Delete</button></div>
+        <div class="row"><button class="btn sm" id="l-exp">Export file</button><button class="btn sm" id="l-imp">Import file</button><button class="btn sm" id="l-reset">Restore examples</button><input type="file" id="l-file" accept=".json,application/json" hidden></div>
+        <div class="note" id="l-note">Tap a blueprint to open it. Hospital and Warehouse are built in; the other three are examples you can edit (walls, zones, beacons) and save over, or save under a new name.</div>
+      </div>
       <div class="row"><button class="btn sm" id="b-trail">Trail: on</button><button class="btn sm" id="b-reset">Clear trail</button><span class="note" id="n-path">Path: 0.0 m</span></div>
     </div>
 
     <div class="pane" id="t-space">
       <h3>Space</h3>
-      <div class="seg" id="spaces" style="align-self:flex-start"><button data-sp="room" aria-pressed="false">My room</button><button data-sp="hospital" aria-pressed="true">Hospital floor</button></div>
+      <div class="seg" id="spaces" style="align-self:flex-start"><button data-sp="room" aria-pressed="false">My room</button><button data-sp="hospital" aria-pressed="true">Hospital</button><button data-sp="warehouse" aria-pressed="false">Warehouse</button></div>
       <div class="note" id="n-space"></div>
       <div id="o-room" style="display:flex;flex-direction:column;gap:12px">
         <label class="fld">Ceiling height (m) <span class="v" id="v-Z">2.7</span><input type="range" id="i-Z" min="2" max="8" step="0.1" value="2.7"></label>
         <div class="sw">Partition wall with door (NLOS test)<button class="tg" id="g-part" aria-pressed="false" aria-label="Partition"></button></div>
+      </div>
+      <div id="ed-box" class="card" style="display:none">
+        <h4>Floor plan editor</h4>
+        <div class="note" id="ed-sum">–</div>
+        <div class="row" id="ed-tools"><button class="btn sm opt" data-ed="wall" aria-pressed="false">Draw wall</button><button class="btn sm opt" data-ed="zone" aria-pressed="false">Add zone</button><button class="btn sm opt" data-ed="erase" aria-pressed="false">Erase wall</button><button class="btn sm" id="ed-clear">Clear</button></div>
+        <label class="fld">Zone name<input type="text" id="z-name" placeholder="e.g. ICU bay 2" maxlength="30" style="height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-weight:600"></label>
+        <div class="chips" id="z-list"></div>
+        <div class="note">Tap the floor in the view: two taps make a wall (nearly straight becomes straight), two corners make a zone. Zones name the answers ISHA and the alerts give. Save it in <b>Beacons → Saved layouts</b>.</div>
       </div>
       <h3>Tag height</h3>
       <label class="fld">Held at <span class="v" id="v-zd">1.30 m</span><input type="range" id="i-zd" min="0" max="2.6" step="0.05" value="1.3"></label>

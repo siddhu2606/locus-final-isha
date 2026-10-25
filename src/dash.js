@@ -5,7 +5,7 @@ const ACOL = ['#2A78D6', '#EB6834', '#1BAF7A', '#E0A000', '#8B5CF6', '#E0508C'],
 const TH = [], TMARK = [], SILENT = {};   /* trust trace: last 20 s of {t, v: {anchorId: trust}}; event marks (killed / revived / lost) */
 const COL = { truth: '#0B3A4A', locus: '#10B981', ls: '#F5A524', kf: '#8B5CF6', pt: '#22C3E6', dead: '#9AA9B0', obs: '#F5A524', drift: '#8B5CF6' };
 const S = {
-  space: 'room', W: 5, H: 4, Z: 2.7, n: 5, clock: 0, calD: 1, shield: false, focus: null, phoneTruth: null, phoneTruthT: 0, phoneSrc: null, linkKind: null, zDev: 1.3, zKnow: true, zAssume: 1.3, partition: false,
+  space: 'room', plan: { walls: [], rooms: [] }, layName: null, W: 5, H: 4, Z: 2.7, n: 5, clock: 0, calD: 1, shield: false, focus: null, phoneTruth: null, phoneTruthT: 0, phoneSrc: null, linkKind: null, zDev: 1.3, zKnow: true, zAssume: 1.3, partition: false,
   src: 'demo', pos: [2.5, 2], trail: [], showTrail: true, heading: null, scale: 1, steps: 0, path: 0,
   anchors: [], all: null, k: 4, sel: 0, dead: new Set(), obstruct: new Set(), drift: new Set(),
   model: 'rssi', sigDb: 4, sigM: 0.6, loss: 0.1, rssi1m: -59, pn: 2.2, scorer: 'fused',
@@ -14,8 +14,9 @@ const S = {
 };
 const SAVED = ['roomW', 'roomH', 'Z', 'k', 'zDev', 'model', 'sigDb', 'loss', 'rssi1m', 'pn', 'host'];
 let savedSlots = null;
-try { const j = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); SAVED.forEach(k => { if (j[k] != null) S[k] = j[k]; }); if (Array.isArray(j.slots) && j.slots.length === 6) savedSlots = j.slots; } catch (e) { }
-const save = () => { try { const o = Object.fromEntries(SAVED.map(k => [k, S[k]])); if (S.space === 'room' && S.all) o.slots = S.all.map(a => ({ x: a.x, y: a.y, z: a.z, on: a.on, p1: a.p1, n: a.n, cal: a.cal })); localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch (e) { } };
+try { const j = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); SAVED.forEach(k => { if (j[k] != null) S[k] = j[k]; }); if (Array.isArray(j.slots) && j.slots.length === 6) savedSlots = j.slots; if (j.plan && Array.isArray(j.plan.walls)) S.plan = j.plan; } catch (e) { }
+const isSite = () => S.space === 'hospital' || S.space === 'warehouse';
+const save = () => { try { const o = Object.fromEntries(SAVED.map(k => [k, S[k]])); o.plan = S.plan; if (S.space === 'room' && S.all) o.slots = S.all.map(a => ({ x: a.x, y: a.y, z: a.z, on: a.on, p1: a.p1, n: a.n, cal: a.cal })); localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch (e) { } };
 
 /* ---------- space / beacons: always 6 slots (beacon IDs 1-6 in the LOCUS Beacon app), each on or off ---------- */
 const LAYOUT = {
@@ -29,10 +30,10 @@ function presetAnchors(k) {
 }
 function activate() { S.anchors = S.all.filter(a => a.on); S.n = S.anchors.length; S.k = S.n; S.sel = Math.max(0, Math.min(S.sel, S.n - 1)); }
 let eng = null, last = null;
-function partitions() { return S.partition && S.space === 'room' ? [[S.W / 2, 0, S.W / 2, S.H * 0.36], [S.W / 2, S.H * 0.64, S.W / 2, S.H]] : []; }
+function partitions() { return S.space !== 'room' ? [] : (S.partition ? [[S.W / 2, 0, S.W / 2, S.H * 0.36], [S.W / 2, S.H * 0.64, S.W / 2, S.H]] : []).concat(S.plan.walls); }
 function rebuild(keepAnchors) {
-  if (S.space === 'hospital') {
-    setSite('hospital'); S.Z = 3; S.W = FLOOR.w; S.H = FLOOR.h;
+  if (isSite()) {
+    setSite(S.space); S.Z = 3; S.W = FLOOR.w; S.H = FLOOR.h;
     const old = S.all || [], base = DROP_ORDER.slice(0, 6).map(i => ANCHORS[i]);
     S.all = base.map((a, i) => ({ id: 'A' + (i + 1), b: i + 1, x: a.x, y: a.y, z: i % 2 ? 0.9 : 2.6, on: keepAnchors && old[i] ? old[i].on : i < S.k, p1: old[i] ? old[i].p1 : null, n: old[i] ? old[i].n : null, cal: old[i] ? old[i].cal : null }));
   } else {
@@ -43,10 +44,10 @@ function rebuild(keepAnchors) {
   if (!S.all.some(a => a.on)) S.all[0].on = true;
   S.all.forEach(a => { a.tx = a.x; a.ty = a.y; a.hx = a.x; a.hy = a.y; a.mv = !!a.mv && S.mode === 'demo'; a.wp = null; a.pause = 0; });
   activate();
-  if (S.space === 'room') setRoom(S.W, S.H, S.anchors, partitions());
+  if (S.space === 'room') setRoom(S.W, S.H, S.anchors, partitions(), S.plan.rooms.length ? S.plan.rooms : null);
   S.pos = [Math.min(S.W - .2, Math.max(.2, S.pos[0])), Math.min(S.H - .2, Math.max(.2, S.pos[1]))];
-  if (S.space === 'hospital' && (S.pos[0] < 1 || S.pos[1] < 1)) S.pos = [3, 12];
-  newEngine(); S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
+  if (isSite() && (S.pos[0] < 1 || S.pos[1] < 1)) S.pos = [3, 12];
+  newEngine(); S.route = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
   S.assets = new AssetSim(S.space, S.W, S.H, 77); MT.log.length = 0; MT.b = {}; S.anchors.forEach(a => MT.update(a.id, a.x, -a.y, S.clock, true));
   fitView(); save(); Phone.cfgChanged();
 }
@@ -56,12 +57,12 @@ function newEngine() {
 }
 /* the filter's range-noise belief: dB shadowing is multiplicative in range (rel. error = sigma_dB*ln10/(10n)) */
 function engSigma() {
-  if (S.space === 'hospital') return Math.max(0.3, S.sigM * 0.75);
+  if (isSite()) return Math.max(0.3, S.sigM * 0.75);
   if (S.model === 'add') return Math.max(0.15, S.sigM);
   return Math.min(3, Math.max(0.2, S.sigDb * Math.LN10 / (10 * S.pn) * 0.4 * Math.hypot(S.W, S.H)));
 }
 function radioCfg() {
-  const hosp = S.space === 'hospital';
+  const hosp = isSite();
   return {
     model: S.model, loss: S.loss, rssi1m: S.rssi1m, n: S.pn, sigma: S.model === 'add' ? S.sigM : 0.6, sigmaDb: S.sigDb, wallDb: 6, obstructDb: 12, driftDb: 6, burst: hosp ? 0.004 : 0.002,
     wallBias: hosp ? 1.8 : 1.2, obstructBias: hosp ? 4 : 1.8, driftBias: hosp ? 2.5 : 1.2, dead: S.dead, obstruct: S.obstruct, drift: S.drift,
@@ -71,6 +72,8 @@ function radioCfg() {
 /* ---------- truth sources ---------- */
 let walker = null, keys = {}, joy = { x: 0, y: 0 }, target = null, demoI = 0;
 function demoPath() {
+  if (S.space === 'warehouse') return WAYPOINTS;
+  if (S.space === 'room' && S.plan.rooms.length) return S.plan.rooms.map(r => [(r.r[0] + r.r[2]) / 2, (r.r[1] + r.r[3]) / 2]).filter(p => p[0] > 0);   /* visit every zone (walls slide the walker to the doors) */
   if (S.space === 'hospital') return [[3, 12], [15, 12], [15, 4], [15, 12], [25, 12], [25, 4], [25, 12], [36, 12], [36, 19.5], [36, 12], [27, 12], [27, 19.5], [27, 12], [6, 12], [6, 19.5], [6, 12]];
   const W = S.W, H = S.H, a = 0.8, p = S.partition ? [[a, a], [W / 2 - .6, a], [W / 2 - .6, H / 2], [W / 2 + .6, H / 2], [W / 2 + .6, a], [W - a, a], [W - a, H - a], [W / 2 + .6, H - a], [W / 2 + .6, H / 2], [W / 2 - .6, H / 2], [W / 2 - .6, H - a], [a, H - a]] : [[a, a], [W - a, a], [W - a, H - a], [a, H - a]];
   return p;
@@ -82,10 +85,14 @@ function stepMove(dx, dy) {
   S.pos = [nx, ny];
 }
 function updateTruth(dt) {
-  const spd = S.space === 'hospital' ? 1.4 : 0.9;
+  const spd = isSite() ? 1.4 : 0.9;
   if (S.mode === 'live') return;   /* real radio: the only truth is where the user taps */
   if (S.calib != null) { const a = S.all[S.calib], rh = S.calD, cx = S.W / 2 - a.x, cy = S.H / 2 - a.y, L = Math.hypot(cx, cy) || 1; S.pos = [a.x + cx / L * rh, a.y + cy / L * rh]; return; }
-  if (S.src === 'demo') { const p = demoPath(); demoI %= p.length; if (moveToward(p[demoI][0], p[demoI][1], spd, dt)) demoI = (demoI + 1) % p.length; }
+  if (S.src === 'demo' && S.space === 'room' && S.plan.walls.length) {   /* floor plan with walls: walk zone to zone through the doors */
+    if (!S.route || !S.route.length) { const p = demoPath(); demoI %= p.length; S.route = gridRoute(S.pos, p[demoI], S.W, S.H); demoI++; }
+    const tg = S.route[0], b4 = S.pos.slice(); if (moveToward(tg[0], tg[1], spd, dt) || (S.pos[0] === b4[0] && S.pos[1] === b4[1])) S.route.shift();
+  }
+  else if (S.src === 'demo') { const p = demoPath(); demoI %= p.length; if (moveToward(p[demoI][0], p[demoI][1], spd, dt)) demoI = (demoI + 1) % p.length; }
   else if (S.src === 'touch') {
     let vx = (keys.d || keys.ArrowRight ? 1 : 0) - (keys.a || keys.ArrowLeft ? 1 : 0) + joy.x, vy = (keys.s || keys.ArrowDown ? 1 : 0) - (keys.w || keys.ArrowUp ? 1 : 0) + joy.y;
     const L = Math.hypot(vx, vy);
@@ -138,7 +145,7 @@ function layout(k) {
 }
 function buildTable() {
   document.querySelectorAll('#lays button').forEach(b => b.classList.toggle('on', +b.dataset.lay === S.n && S.all.every((a, i) => a.on === i < S.n)));
-  const hosp = S.space === 'hospital'; $('i-W').value = S.W; $('i-H').value = S.H; $('i-W').disabled = $('i-H').disabled = hosp;
+  const hosp = isSite(); $('i-W').value = S.W; $('i-H').value = S.H; $('i-W').disabled = $('i-H').disabled = hosp;
   $('bt').innerHTML = S.all.map((a, i) => `<tr class="${a.on ? '' : 'off'}" data-i="${i}"><td><b>${a.b}</b><span class="hd"></span></td><td><input type="checkbox"${a.on ? ' checked' : ''} aria-label="Beacon ${a.b} on"></td><td><input type="number" step="0.1" data-k="x" value="${a.x.toFixed(1)}"></td><td><input type="number" step="0.1" data-k="y" value="${a.y.toFixed(1)}"></td><td><input type="number" step="0.1" min="0" data-k="z" value="${a.z.toFixed(1)}"></td><td class="c-r">–</td><td class="c-d">–</td><td><div class="tb"><i style="width:0"></i></div></td><td><button class="cal${a.p1 != null ? ' set' : ''}">${p1Label(i)}</button></td></tr>`).join('');
   document.querySelectorAll('#bt tr').forEach(tr => {
     const i = +tr.dataset.i, a = S.all[i], ins = tr.querySelectorAll('input');
@@ -360,7 +367,7 @@ function draw() {
   poly([P(0, 0, 0), P(W, 0, 0), P(W, H, 0), P(0, H, 0)], '#FFFFFF', '#9CCFE0', 1.5);
   g.save(); g.globalAlpha = 0.55; const step = W > 14 ? 5 : 1;
   for (let x = step; x < W; x += step) line(P(x, 0, 0), P(x, H, 0), '#DDF0F6', 1); for (let y = step; y < H; y += step) line(P(0, y, 0), P(W, y, 0), '#DDF0F6', 1); g.restore();
-  if (S.space === 'hospital') ROOMS.forEach(r => { const [a, b, c, d] = r.r; poly([P(a, b, 0), P(c, b, 0), P(c, d, 0), P(a, d, 0)], r.id === 'corr' ? 'rgba(34,195,230,.07)' : 'rgba(16,185,129,.05)', null); const m = P((a + c) / 2, (b + d) / 2, 0); if (tilt > 45) { g.fillStyle = '#7A9AA6'; g.font = '600 11px Figtree'; g.textAlign = 'center'; g.fillText(r.name, m[0], m[1]); } });
+  if (ROOMS.length > 1) ROOMS.forEach(r => { const [a, b, c, d] = r.r; if (c <= a) return; poly([P(a, b, 0), P(c, b, 0), P(c, d, 0), P(a, d, 0)], r.id === 'corr' ? 'rgba(34,195,230,.07)' : 'rgba(16,185,129,.05)', null); const m = P((a + c) / 2, (b + d) / 2, 0); if (tilt > 45) { g.fillStyle = '#7A9AA6'; g.font = '600 11px Figtree'; g.textAlign = 'center'; g.fillText(r.name, m[0], m[1]); } });
   /* room box edges */
   const cs = [[0, 0], [W, 0], [W, H], [0, H]];
   if (tilt < 88) { poly(cs.map(c => P(c[0], c[1], Z)), null, 'rgba(14,157,190,.45)', 1.2); cs.forEach(c => line(P(c[0], c[1], 0), P(c[0], c[1], Z), 'rgba(14,157,190,.35)', 1.2)); }
@@ -377,7 +384,7 @@ function draw() {
   /* trails */
   const trl = (arr, col, wd) => { if (arr && arr.length > 1) { g.beginPath(); arr.forEach((q, i) => { const p = P(q[0], q[1], 0); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }); g.strokeStyle = col; g.lineWidth = wd; g.stroke(); } };
   if (S.show.truth && S.showTrail) trl(S.trail, 'rgba(11,58,74,.35)', 2); if (S.show.locus && S.showTrail) trl(S.estTrail, 'rgba(16,185,129,.55)', 2);
-  drawSelfCheck(); drawBeaconMoves(); drawAssets(); drawOffRadar();
+  drawSelfCheck(); drawBeaconMoves(); drawAssets(); drawOffRadar(); drawEdit();
   if (S.mode === 'live' && S.liveTruth && !(c && c.truth)) { const p = P(S.liveTruth[0], S.liveTruth[1], 0); g.beginPath(); g.arc(p[0], p[1], 11, 0, 7); g.strokeStyle = COL.truth; g.lineWidth = 2.5; g.setLineDash([4, 3]); g.stroke(); g.setLineDash([]); g.fillStyle = COL.truth; g.font = '700 10.5px Figtree'; g.textAlign = 'center'; g.fillText('you (tapped)', p[0], p[1] - 15); }
   if (target && S.src === 'touch') { const p = P(target[0], target[1], 0); g.beginPath(); g.arc(p[0], p[1], 9, 0, 7); g.strokeStyle = '#10B981'; g.lineWidth = 2; g.stroke(); }
   /* objects sorted far -> near */
@@ -433,10 +440,10 @@ function renderAnchors() {
     el.querySelectorAll('input').forEach(inp => inp.onchange = () => { const a = S.anchors[+el.dataset.i], k = inp.dataset.k, v = parseFloat(inp.value); if (isNaN(v)) return; const c = Math.min(k === 'x' ? S.W : k === 'y' ? S.H : S.Z, Math.max(0, v)); if (k === 'z') { a.z = c; renderAnchorsDz(); buildTable(); Phone.cfgChanged(); } else { a.mv = false; placeBeacon(a, k === 'x' ? c : a.x, k === 'y' ? c : a.y, true); buildTable(); } });
   });
 }
-function relayout() { if (S.space === 'room') { setRoom(S.W, S.H, S.anchors, partitions()); } newEngine(); renderAnchors(); }
+function relayout() { if (S.space === 'room') { setRoom(S.W, S.H, S.anchors, partitions(), S.plan.rooms.length ? S.plan.rooms : null); } newEngine(); renderAnchors(); }
 function syncFaults() { const a = S.anchors[S.sel]; if (!a) return; document.querySelectorAll('#faults button').forEach(b => { const f = b.dataset.f; b.setAttribute('aria-pressed', f === 'clear' ? 'false' : String(S[f === 'dead' ? 'dead' : f].has(a.id))); }); }
 function spaceNote() {
-  $('n-space').innerHTML = S.space === 'room' ? 'Your own room: set its size and beacons in the <b>Beacons</b> tab (virtual BLE beacons in Demo, real phones in Receiver mode). Heights are set here.' : '<b>The 40 × 24 m hospital floor the ML model was trained on.</b> A synced phone walk is scaled up ×8 so crossing your room crosses a ward. The trained trust model is fully in-distribution here. Beacons 1-6 are the first six hospital anchors.';
+  $('n-space').innerHTML = S.space === 'room' ? 'Your own floor plan: set its size and beacons in the <b>Beacons</b> tab, draw walls and zones below, save it under <b>Saved layouts</b>. Real phones always use this.' : S.space === 'warehouse' ? '<b>Warehouse, 40 × 24 m:</b> receiving, three aisles with end-cap shelves, dispatch. Walls are fixed; beacon positions and heights are yours to move.' : '<b>The 40 × 24 m hospital floor the ML model was trained on.</b> Walls are fixed; beacon positions and heights are yours to move.';
   $('o-room').style.display = S.space === 'room' ? 'flex' : 'none';
   $('n-ml').innerHTML = { rules: '<b>Rules only:</b> residual against the motion model, sudden jumps and variance spikes. Every reason you see on a card comes from these checks.', ml: '<b>ML only:</b> a LightGBM model trained on ' + (TRUST_MODEL.n_train / 1000 | 0) + 'k simulated hospital readings (AUC ' + TRUST_MODEL.auc.toFixed(2) + ' vs ' + TRUST_MODEL.auc_heuristic.toFixed(2) + ' for the rules) scores each reading. It runs in your browser.', fused: '<b>Rules + ML (default):</b> both score every reading. When they agree the trust is their average; when either is sure a reading is bad (below 0.25) that one wins. So the ML catches what the rules miss, and the rules keep the ML honest outside its training data. Each card shows both scores.' }[S.scorer] + (S.space === 'room' && S.scorer !== 'rules' ? ' The ML was trained on a 40 × 24 m hospital; in a small room the rules carry more of the weight.' : '');
 }
@@ -483,7 +490,7 @@ function bindUI() {
     else if (mode === 'pinch' && ptrs.size === 2) { const p = [...ptrs.values()]; S.view.zoom = Math.min(4, Math.max(0.5, st.z * Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) / st.d)); } };
   cv.onpointerup = cv.onpointercancel = e => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if (mode === 'anchor' && st.moved > 3) { renderAnchors(); buildTable(); }
-    else if (mode === 'orbit' && st.moved <= 5) { const u = V.U(x, y, 0); if (u[0] >= 0 && u[1] >= 0 && u[0] <= S.W && u[1] <= S.H) { if (S.mode === 'live') logTap(u); else if (S.src === 'touch') target = u; } }
+    else if (mode === 'orbit' && st.moved <= 5) { const u = V.U(x, y, 0); if (u[0] >= 0 && u[1] >= 0 && u[0] <= S.W && u[1] <= S.H && !editTap(u)) { if (S.mode === 'live') logTap(u); else if (S.src === 'touch') target = u; } }
     ptrs.delete(e.pointerId); if (!ptrs.size) { mode = null; cv.classList.remove('drag'); } };
   cv.onwheel = e => { e.preventDefault(); S.view.zoom = Math.min(4, Math.max(0.5, S.view.zoom * (e.deltaY < 0 ? 1.1 : 0.9))); };
   addEventListener('keydown', e => { if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true; if (S.mode === 'demo' && S.src !== 'touch' && /^(w|a|s|d|Arrow.*)$/.test(e.key) && !e.metaKey) setSource('touch'); if (e.key.startsWith('Arrow')) e.preventDefault(); });
@@ -492,7 +499,7 @@ function bindUI() {
   jy.onpointerdown = e => { jd = true; jy.setPointerCapture(e.pointerId); jm(e); }; jy.onpointermove = e => { if (jd) jm(e); }; jy.onpointerup = jy.onpointercancel = () => { jd = false; joy = { x: 0, y: 0 }; jk.style.transform = ''; };
   addEventListener('resize', resize);
 }
-function setSpace(sp) { S.space = sp; setSeg('spaces', 'sp', S.space); if (S.space === 'hospital') { S.k = 6; S.scale = 8; S.model = 'add'; $('i-model').value = 'add'; S.sigM = 0.8; sigUI(); S.pos = [3, 12]; } else { S.scale = 1; S.model = 'rssi'; $('i-model').value = 'rssi'; sigUI(); S.Z = +$('i-Z').value; S.k = 4; S.W = S.roomW || 5; S.H = S.roomH || 4; $('i-W').value = S.W; $('i-H').value = S.H; S.pos = [S.W / 2, S.H / 2]; S.all = null; } S.dead.clear(); S.obstruct.clear(); S.drift.clear(); demoI = 0; rebuild(false); spaceNote(); renderAnchors(); buildTable(); }
+function setSpace(sp) { S.space = sp; setSeg('spaces', 'sp', S.space); S.layName = { hospital: 'Hospital floor', warehouse: 'Warehouse' }[sp] || null; if (isSite()) { S.k = 6; S.scale = 8; S.model = 'add'; $('i-model').value = 'add'; S.sigM = 0.8; sigUI(); S.pos = [3, 12]; } else { S.scale = 1; S.model = 'rssi'; $('i-model').value = 'rssi'; sigUI(); S.Z = +$('i-Z').value; S.k = 4; S.W = S.roomW || 5; S.H = S.roomH || 4; $('i-W').value = S.W; $('i-H').value = S.H; S.pos = [S.W / 2, S.H / 2]; S.all = null; } S.dead.clear(); S.obstruct.clear(); S.drift.clear(); demoI = 0; rebuild(false); spaceNote(); renderAnchors(); buildTable(); if (typeof renderLayouts === 'function' && $('bp-list').children.length) { renderLayouts(); renderPlan(); } }
 function renderAnchorsDz() { document.querySelectorAll('#anchors .an').forEach(el => { const a = S.anchors[+el.dataset.i], dz = a.z - S.zDev, s = el.querySelector('.dz'); if (s) s.textContent = (dz >= 0 ? '↑ ' : '↓ ') + Math.abs(dz).toFixed(1) + ' m ' + (dz >= 0 ? 'above' : 'below') + ' phone'; }); }
 function sigUI() { const r = S.model === 'rssi', el = $('i-sig'); el.max = r ? 10 : 3; el.step = r ? 0.5 : 0.1; el.value = r ? S.sigDb : S.sigM; $('v-sig').textContent = el.value + (r ? ' dB' : ' m'); }
 function setSource(s) {
@@ -534,11 +541,11 @@ function loop(now) {
 function init() {
   $('i-W').value = S.W; $('i-H').value = S.H; $('i-Z').value = S.Z; $('v-Z').textContent = S.Z.toFixed(1); $('i-host').value = S.host || '';
   $('i-zd').value = S.zDev; $('v-zd').textContent = S.zDev.toFixed(2) + ' m'; S.zAssume = S.zDev; $('i-model').value = S.model; $('i-loss').value = S.loss * 100; $('v-loss').textContent = Math.round(S.loss * 100) + '%'; $('i-r1').value = S.rssi1m; $('i-pn').value = S.pn;
-  sigUI(); bindUI(); bindMore(); resize(); rebuild(false); buildTable(); spaceNote(); renderAnchors(); syncFaults(); syncView(); setSource('demo');
+  sigUI(); bindUI(); bindMore(); bindLayouts(); resize(); rebuild(false); buildTable(); spaceNote(); renderAnchors(); syncFaults(); syncView(); setSource('demo');
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
-  const sp = /[?&#]space=(room|hospital)/.exec(location.href); setSpace(sp ? sp[1] : 'hospital');
+  const sp = /[?&#]space=(room|hospital|warehouse)/.exec(location.href); setSpace(sp ? sp[1] : 'hospital');
   const jm = /[#&?]code=(\d{6})/.exec(location.href); if (jm) { setMode('live'); $('i-code').value = jm[1]; setTimeout(() => Phone.connect(jm[1]), 300); }
   buildAccess(); renderObjects(); requestAnimationFrame(loop);
   window.update_beacon_position = updateBeaconPosition;
-  window.__locus = { Phone, S, tick, MT, Alerts, gateRun, addCal, placeBeacon, updateBeaconPosition, get eng() { return eng; }, get cur() { return cur; }, get stats() { return stats; }, setSource, setMode, rebuild, layout, health, measureBeacon, calibrate, logTap, liveMeas, setFault, updateTrust, get TH() { return TH; }, get TMARK() { return TMARK; } };
+  window.__locus = { screen(x, y) { const r = cv.getBoundingClientRect(), p = V.P(x, y, 0); return [r.left + p[0], r.top + p[1]]; }, Phone, S, tick, MT, Alerts, gateRun, addCal, placeBeacon, updateBeaconPosition, get eng() { return eng; }, get cur() { return cur; }, get stats() { return stats; }, setSource, setMode, rebuild, layout, health, measureBeacon, calibrate, logTap, liveMeas, setFault, updateTrust, get TH() { return TH; }, get TMARK() { return TMARK; } };
 }

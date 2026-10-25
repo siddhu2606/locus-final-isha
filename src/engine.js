@@ -31,11 +31,12 @@ function warehouseSite() {
     way: [[3, 12], [12, 12], [12, 7], [12, 17], [12, 12], [20, 12], [20, 7], [20, 17], [20, 12], [28, 12], [28, 7], [28, 17], [28, 12], [36, 12], [36, 5], [36, 19], [36, 12]] };
 }
 /* Custom rectangular room (Room Live). Optional interior partition walls [[x1,y1,x2,y2],...]; anchors [{id,x,y}] */
-function setRoom(w, h, anchors, partitions) {
+function setRoom(w, h, anchors, partitions, rooms) {
   FLOOR.w = w; FLOOR.h = h; const W = (partitions || []).map(p => p.slice());
   W.push([0, 0, w, 0], [0, h, w, h], [0, 0, 0, h], [w, 0, w, h]);
   SITE_ID = 'room' + w + 'x' + h + ':' + JSON.stringify(W); ROOMS = [{ id: 'room', name: 'Room', r: [0, 0, w, h] }]; WALLS = W;
   ANCHORS = anchors.map(a => ({ id: a.id, x: a.x, y: a.y })); DROP_ORDER = ANCHORS.map((a, i) => i); WAYPOINTS = [[w / 2, h / 2], [w / 2 + 0.01, h / 2]]; FALLBACK = 'room';
+  if (rooms && rooms.length) { ROOMS = rooms.map(r => ({ id: r.id, name: r.name, r: r.r.slice() })); FALLBACK = '_out'; ROOMS.push({ id: '_out', name: 'Room', r: [0, 0, 0, 0] }); }
 }
 function setSite(id) { FLOOR.w = 40; FLOOR.h = 24; const S = id === 'warehouse' ? warehouseSite() : hospitalSite(); SITE_ID = id; ROOMS = S.rooms; WALLS = S.walls; ANCHORS = S.anchors; DROP_ORDER = S.drop; WAYPOINTS = S.way; FALLBACK = S.fallback; }
 setSite('hospital');

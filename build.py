@@ -8,7 +8,7 @@ shared = r('src/engine.js') + r('src/trust_model.js') + r('src/room_core.js') + 
 
 # the head of the dashboard template (CSS) is kept in _head.html, the rest in _body.html
 (R / 'src/dashboard.template.html').write_text(r('src/_head.html') + r('src/_body.html'), encoding='utf-8')
-dash = shared + r('src/moving/motion.js') + r('src/dash.js') + r('src/dash_more.js') + '\ninit();\n'
+dash = shared + r('src/moving/motion.js') + r('src/dash.js') + r('src/dash_more.js') + r('src/layouts.js') + '\ninit();\n'
 out = {}
 out['dashboard.html'] = r('src/dashboard.template.html').replace('/*__VENDOR__*/', vendor).replace('/*__APP__*/', dash)
 out['phone.html'] = r('src/phone.template.html').replace('/*__VENDOR__*/', vendor).replace('/*__APP__*/', shared + r('src/phone.js'))

@@ -171,6 +171,7 @@ code{background:var(--aqua-xl);padding:1px 6px;border-radius:6px;font-size:12px}
 .isha{display:flex;flex-direction:column;gap:8px}.isha form{display:flex;gap:6px}.isha input{flex:1;height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-size:13.5px;min-width:0}
 .isha-a{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}.isha-a .q{align-self:flex-end;background:var(--aqua-xl);border-radius:12px 12px 2px 12px;padding:6px 10px;font-size:12.5px;font-weight:600}.isha-a .a{background:var(--em-l);color:var(--em-dd);border-radius:12px 12px 12px 2px;padding:7px 10px;font-size:13px;line-height:1.4}
 .codein{display:flex;gap:6px}.codein input{flex:1;min-width:0;height:44px;border:1.5px solid var(--aqua-l);border-radius:12px;text-align:center;font:700 22px Sora;letter-spacing:.3em}
+.bps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.bp{border:1.5px solid var(--line);border-radius:14px;padding:9px 10px;text-align:left;background:#fff;display:grid;grid-template-columns:auto 1fr;column-gap:8px;row-gap:1px;align-items:center}.bp:hover{border-color:var(--em)}.bp.on{border-color:var(--em);background:var(--em-l)}.bp i{font-style:normal;font-size:20px;grid-row:span 2}.bp b{font-size:13.5px}.bp span{font-size:11.5px;color:var(--ink3);line-height:1.3}.bp em{grid-column:2;font-style:normal;font-size:10.5px;font-weight:700;color:var(--em-dd);text-transform:uppercase;letter-spacing:.05em}.zchip{display:inline-flex;align-items:center;gap:4px;background:var(--aqua-xl);border-radius:99px;padding:3px 4px 3px 10px;font-size:12.5px;font-weight:600}.zchip button{width:20px;height:20px;border-radius:50%;background:#fff;font-weight:700;color:var(--ink2)}
 .bt th:nth-child(1){width:30px}.bt th:nth-child(2){width:24px}.bt th:nth-child(3),.bt th:nth-child(4){width:46px}.bt th:nth-child(5){width:42px}.bt th:nth-child(6){width:56px}.bt th:nth-child(7){width:54px}.bt th:nth-child(9){width:46px}.bt input[type=number]{width:100%;padding:0 2px;-moz-appearance:textfield;appearance:textfield;text-align:center}.bt input::-webkit-inner-spin-button,.bt input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.bt .cal{width:44px;padding:0 2px}
 </style>
 </head>
@@ -179,7 +180,7 @@ code{background:var(--aqua-xl);padding:1px 6px;border-radius:6px;font-size:12px}
   <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C3E6"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><path d="M16 2c-5.5 0-10 4.4-10 9.8C6 19 16 30 16 30s10-11 10-18.2C26 6.4 21.500 2 16 2z" fill="url(#lg)"/><circle cx="16" cy="12" r="4" fill="#fff"/></svg>LOCUS <small>ISHA dashboard</small></div>
   <div class="hl"><span class="pill" id="p-src"><i></i><span>Demo · auto loop</span></span><span class="pill" id="p-mode"><i></i><span>Simulated radio</span></span><a class="pill" href="phone.html">Phone app</a><a class="pill" href="./">Home</a></div>
 </div>
-<nav class="rail" aria-label="Sections"><a href="#live"><i>01</i>Live 3D</a><a href="#trust"><i>02</i>Trust scorer</a><a href="#alerts"><i>03</i>Off radar + self-check</a><a href="#access"><i>04</i>Access · 3 gates</a><a href="#panel" data-tab="objects"><i>05</i>Objects + ISHA</a><a href="#panel" data-tab="space"><i>06</i>Moving beacons</a><a href="moving.html"><i>07</i>Moving lab</a><a href="knowledge.html"><i>08</i>Knowledge</a></nav></header>
+<nav class="rail" aria-label="Sections"><a href="#live"><i>01</i>Live 3D</a><a href="#trust"><i>02</i>Trust scorer</a><a href="#alerts"><i>03</i>Off radar + self-check</a><a href="#access"><i>04</i>Access · 3 gates</a><a href="#panel" data-tab="objects"><i>05</i>Objects + ISHA</a><a href="#panel" data-tab="beacons"><i>06</i>Layouts</a><a href="#panel" data-tab="space"><i>07</i>Moving beacons</a><a href="moving.html"><i>08</i>Moving lab</a><a href="knowledge.html"><i>09</i>Knowledge</a></nav></header>
 
 <div class="layout">
   <div class="lcol">
@@ -299,16 +300,31 @@ position fix      weight_i = trust_i²       share_i = weight_i / Σ weight</pre
         <div class="gcal" id="gcal"><b id="g-title"></b><div class="note" id="g-text"></div><div class="prog"><i id="g-bar"></i></div><div class="row"><button class="btn pri sm" id="g-go">Measure (3 s)</button><button class="btn sm" id="g-skip">Skip</button><button class="btn sm" id="g-stop">Stop</button></div></div>
         <div class="note" id="n-why">Beacon # is the ID you pick in the app on each beacon phone. Untick one to test losing a beacon.</div>
       </div>
+      <div class="card" id="layouts">
+        <h4>Saved layouts &amp; blueprints</h4>
+        <div class="bps" id="bp-list"></div>
+        <div class="row"><input type="text" id="l-name" placeholder="Name" maxlength="40" style="flex:1;min-width:120px;height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-weight:600"><button class="btn pri sm" id="l-save">Save</button><button class="btn sm" id="l-del">Delete</button></div>
+        <div class="row"><button class="btn sm" id="l-exp">Export file</button><button class="btn sm" id="l-imp">Import file</button><button class="btn sm" id="l-reset">Restore examples</button><input type="file" id="l-file" accept=".json,application/json" hidden></div>
+        <div class="note" id="l-note">Tap a blueprint to open it. Hospital and Warehouse are built in; the other three are examples you can edit (walls, zones, beacons) and save over, or save under a new name.</div>
+      </div>
       <div class="row"><button class="btn sm" id="b-trail">Trail: on</button><button class="btn sm" id="b-reset">Clear trail</button><span class="note" id="n-path">Path: 0.0 m</span></div>
     </div>
 
     <div class="pane" id="t-space">
       <h3>Space</h3>
-      <div class="seg" id="spaces" style="align-self:flex-start"><button data-sp="room" aria-pressed="false">My room</button><button data-sp="hospital" aria-pressed="true">Hospital floor</button></div>
+      <div class="seg" id="spaces" style="align-self:flex-start"><button data-sp="room" aria-pressed="false">My room</button><button data-sp="hospital" aria-pressed="true">Hospital</button><button data-sp="warehouse" aria-pressed="false">Warehouse</button></div>
       <div class="note" id="n-space"></div>
       <div id="o-room" style="display:flex;flex-direction:column;gap:12px">
         <label class="fld">Ceiling height (m) <span class="v" id="v-Z">2.7</span><input type="range" id="i-Z" min="2" max="8" step="0.1" value="2.7"></label>
         <div class="sw">Partition wall with door (NLOS test)<button class="tg" id="g-part" aria-pressed="false" aria-label="Partition"></button></div>
+      </div>
+      <div id="ed-box" class="card" style="display:none">
+        <h4>Floor plan editor</h4>
+        <div class="note" id="ed-sum">–</div>
+        <div class="row" id="ed-tools"><button class="btn sm opt" data-ed="wall" aria-pressed="false">Draw wall</button><button class="btn sm opt" data-ed="zone" aria-pressed="false">Add zone</button><button class="btn sm opt" data-ed="erase" aria-pressed="false">Erase wall</button><button class="btn sm" id="ed-clear">Clear</button></div>
+        <label class="fld">Zone name<input type="text" id="z-name" placeholder="e.g. ICU bay 2" maxlength="30" style="height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-weight:600"></label>
+        <div class="chips" id="z-list"></div>
+        <div class="note">Tap the floor in the view: two taps make a wall (nearly straight becomes straight), two corners make a zone. Zones name the answers ISHA and the alerts give. Save it in <b>Beacons → Saved layouts</b>.</div>
       </div>
       <h3>Tag height</h3>
       <label class="fld">Held at <span class="v" id="v-zd">1.30 m</span><input type="range" id="i-zd" min="0" max="2.6" step="0.05" value="1.3"></label>
@@ -393,11 +409,12 @@ function warehouseSite() {
     way: [[3, 12], [12, 12], [12, 7], [12, 17], [12, 12], [20, 12], [20, 7], [20, 17], [20, 12], [28, 12], [28, 7], [28, 17], [28, 12], [36, 12], [36, 5], [36, 19], [36, 12]] };
 }
 /* Custom rectangular room (Room Live). Optional interior partition walls [[x1,y1,x2,y2],...]; anchors [{id,x,y}] */
-function setRoom(w, h, anchors, partitions) {
+function setRoom(w, h, anchors, partitions, rooms) {
   FLOOR.w = w; FLOOR.h = h; const W = (partitions || []).map(p => p.slice());
   W.push([0, 0, w, 0], [0, h, w, h], [0, 0, 0, h], [w, 0, w, h]);
   SITE_ID = 'room' + w + 'x' + h + ':' + JSON.stringify(W); ROOMS = [{ id: 'room', name: 'Room', r: [0, 0, w, h] }]; WALLS = W;
   ANCHORS = anchors.map(a => ({ id: a.id, x: a.x, y: a.y })); DROP_ORDER = ANCHORS.map((a, i) => i); WAYPOINTS = [[w / 2, h / 2], [w / 2 + 0.01, h / 2]]; FALLBACK = 'room';
+  if (rooms && rooms.length) { ROOMS = rooms.map(r => ({ id: r.id, name: r.name, r: r.r.slice() })); FALLBACK = '_out'; ROOMS.push({ id: '_out', name: 'Room', r: [0, 0, 0, 0] }); }
 }
 function setSite(id) { FLOOR.w = 40; FLOOR.h = 24; const S = id === 'warehouse' ? warehouseSite() : hospitalSite(); SITE_ID = id; ROOMS = S.rooms; WALLS = S.walls; ANCHORS = S.anchors; DROP_ORDER = S.drop; WAYPOINTS = S.way; FALLBACK = S.fallback; }
 setSite('hospital');
@@ -789,7 +806,7 @@ const ASSETS = [
 ];
 /* zone names: hospital rooms come from the floor map; "My room" is treated as Ward B and split into four beds */
 function zoneOf(space, x, y, W, H) {
-  if (space === 'hospital') return roomName(roomAt(x, y));
+  if (space !== 'room' || ROOMS.length > 1) return roomName(roomAt(x, y));
   return 'Ward B · bed ' + (9 + (x >= W / 2 ? 1 : 0) + (y >= H / 2 ? 2 : 0));
 }
 function wardOf(space, x, y, W, H) { const z = zoneOf(space, x, y, W, H); return z.split(' · ')[0]; }
@@ -829,7 +846,20 @@ class AssetSim {
   /* compact list for the phone / ISHA */
   list() { return this.items.map(a => ({ id: a.id, type: a.type, name: a.name, pos: a.est, zone: a.zone, conf: a.conf, z: a.z, ago: a.seen == null ? null : this.t - a.seen, online: a.seen != null && this.t - a.seen < 3, ward: a.ward, bed: a.bed })); }
 }
-if (typeof module !== 'undefined') module.exports = { ASSET_TYPES, ASSETS, zoneOf, wardOf, dirFrom, AssetSim };
+
+/* walking route through doors on a floor plan with walls: breadth-first search on a 0.5 m grid, then drop the in-between points */
+function gridRoute(a, b, W, H) {
+  const s = 0.5, nx = Math.max(1, Math.round(W / s)), ny = Math.max(1, Math.round(H / s)), cx = i => (i + 0.5) * W / nx, cy = j => (j + 0.5) * H / ny;
+  const ci = x => Math.min(nx - 1, Math.max(0, Math.floor(x / W * nx))), cj = y => Math.min(ny - 1, Math.max(0, Math.floor(y / H * ny)));
+  const start = cj(a[1]) * nx + ci(a[0]), goal = cj(b[1]) * nx + ci(b[0]), prev = new Int32Array(nx * ny).fill(-1); prev[start] = start; const q = [start];
+  while (q.length) { const c = q.shift(); if (c === goal) break; const i = c % nx, j = (c / nx) | 0;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([di, dj]) => { const i2 = i + di, j2 = j + dj; if (i2 < 0 || j2 < 0 || i2 >= nx || j2 >= ny) return; const n = j2 * nx + i2; if (prev[n] >= 0 || crossesWall(cx(i), cy(j), cx(i2), cy(j2))) return; prev[n] = c; q.push(n); }); }
+  if (prev[goal] < 0) return [b.slice()];
+  const cells = []; for (let c = goal; c !== start; c = prev[c]) cells.push([cx(c % nx), cy((c / nx) | 0)]); cells.reverse(); cells.push(b.slice());
+  const out = []; let from = a; for (let k = 0; k < cells.length; k++) { const nxt = cells[k + 1]; if (!nxt || crossesWall(from[0], from[1], nxt[0], nxt[1])) { out.push(cells[k]); from = cells[k]; } }
+  return out;
+}
+if (typeof module !== 'undefined') module.exports = { gridRoute, ASSET_TYPES, ASSETS, zoneOf, wardOf, dirFrom, AssetSim };
 /* ===== LOCUS access: every request for a PERSON's location passes three gates, and every request is audited. =====
    Gate 1 · Role            admin, and nurses of the patient's ward, may ask; guards see exits only; other wards are refused.
    Gate 2 · Staff + device  a registered phone that LOCUS itself places inside the hospital.
@@ -1031,7 +1061,7 @@ const ACOL = ['#2A78D6', '#EB6834', '#1BAF7A', '#E0A000', '#8B5CF6', '#E0508C'],
 const TH = [], TMARK = [], SILENT = {};   /* trust trace: last 20 s of {t, v: {anchorId: trust}}; event marks (killed / revived / lost) */
 const COL = { truth: '#0B3A4A', locus: '#10B981', ls: '#F5A524', kf: '#8B5CF6', pt: '#22C3E6', dead: '#9AA9B0', obs: '#F5A524', drift: '#8B5CF6' };
 const S = {
-  space: 'room', W: 5, H: 4, Z: 2.7, n: 5, clock: 0, calD: 1, shield: false, focus: null, phoneTruth: null, phoneTruthT: 0, phoneSrc: null, linkKind: null, zDev: 1.3, zKnow: true, zAssume: 1.3, partition: false,
+  space: 'room', plan: { walls: [], rooms: [] }, layName: null, W: 5, H: 4, Z: 2.7, n: 5, clock: 0, calD: 1, shield: false, focus: null, phoneTruth: null, phoneTruthT: 0, phoneSrc: null, linkKind: null, zDev: 1.3, zKnow: true, zAssume: 1.3, partition: false,
   src: 'demo', pos: [2.5, 2], trail: [], showTrail: true, heading: null, scale: 1, steps: 0, path: 0,
   anchors: [], all: null, k: 4, sel: 0, dead: new Set(), obstruct: new Set(), drift: new Set(),
   model: 'rssi', sigDb: 4, sigM: 0.6, loss: 0.1, rssi1m: -59, pn: 2.2, scorer: 'fused',
@@ -1040,8 +1070,9 @@ const S = {
 };
 const SAVED = ['roomW', 'roomH', 'Z', 'k', 'zDev', 'model', 'sigDb', 'loss', 'rssi1m', 'pn', 'host'];
 let savedSlots = null;
-try { const j = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); SAVED.forEach(k => { if (j[k] != null) S[k] = j[k]; }); if (Array.isArray(j.slots) && j.slots.length === 6) savedSlots = j.slots; } catch (e) { }
-const save = () => { try { const o = Object.fromEntries(SAVED.map(k => [k, S[k]])); if (S.space === 'room' && S.all) o.slots = S.all.map(a => ({ x: a.x, y: a.y, z: a.z, on: a.on, p1: a.p1, n: a.n, cal: a.cal })); localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch (e) { } };
+try { const j = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); SAVED.forEach(k => { if (j[k] != null) S[k] = j[k]; }); if (Array.isArray(j.slots) && j.slots.length === 6) savedSlots = j.slots; if (j.plan && Array.isArray(j.plan.walls)) S.plan = j.plan; } catch (e) { }
+const isSite = () => S.space === 'hospital' || S.space === 'warehouse';
+const save = () => { try { const o = Object.fromEntries(SAVED.map(k => [k, S[k]])); o.plan = S.plan; if (S.space === 'room' && S.all) o.slots = S.all.map(a => ({ x: a.x, y: a.y, z: a.z, on: a.on, p1: a.p1, n: a.n, cal: a.cal })); localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch (e) { } };
 
 /* ---------- space / beacons: always 6 slots (beacon IDs 1-6 in the LOCUS Beacon app), each on or off ---------- */
 const LAYOUT = {
@@ -1055,10 +1086,10 @@ function presetAnchors(k) {
 }
 function activate() { S.anchors = S.all.filter(a => a.on); S.n = S.anchors.length; S.k = S.n; S.sel = Math.max(0, Math.min(S.sel, S.n - 1)); }
 let eng = null, last = null;
-function partitions() { return S.partition && S.space === 'room' ? [[S.W / 2, 0, S.W / 2, S.H * 0.36], [S.W / 2, S.H * 0.64, S.W / 2, S.H]] : []; }
+function partitions() { return S.space !== 'room' ? [] : (S.partition ? [[S.W / 2, 0, S.W / 2, S.H * 0.36], [S.W / 2, S.H * 0.64, S.W / 2, S.H]] : []).concat(S.plan.walls); }
 function rebuild(keepAnchors) {
-  if (S.space === 'hospital') {
-    setSite('hospital'); S.Z = 3; S.W = FLOOR.w; S.H = FLOOR.h;
+  if (isSite()) {
+    setSite(S.space); S.Z = 3; S.W = FLOOR.w; S.H = FLOOR.h;
     const old = S.all || [], base = DROP_ORDER.slice(0, 6).map(i => ANCHORS[i]);
     S.all = base.map((a, i) => ({ id: 'A' + (i + 1), b: i + 1, x: a.x, y: a.y, z: i % 2 ? 0.9 : 2.6, on: keepAnchors && old[i] ? old[i].on : i < S.k, p1: old[i] ? old[i].p1 : null, n: old[i] ? old[i].n : null, cal: old[i] ? old[i].cal : null }));
   } else {
@@ -1069,10 +1100,10 @@ function rebuild(keepAnchors) {
   if (!S.all.some(a => a.on)) S.all[0].on = true;
   S.all.forEach(a => { a.tx = a.x; a.ty = a.y; a.hx = a.x; a.hy = a.y; a.mv = !!a.mv && S.mode === 'demo'; a.wp = null; a.pause = 0; });
   activate();
-  if (S.space === 'room') setRoom(S.W, S.H, S.anchors, partitions());
+  if (S.space === 'room') setRoom(S.W, S.H, S.anchors, partitions(), S.plan.rooms.length ? S.plan.rooms : null);
   S.pos = [Math.min(S.W - .2, Math.max(.2, S.pos[0])), Math.min(S.H - .2, Math.max(.2, S.pos[1]))];
-  if (S.space === 'hospital' && (S.pos[0] < 1 || S.pos[1] < 1)) S.pos = [3, 12];
-  newEngine(); S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
+  if (isSite() && (S.pos[0] < 1 || S.pos[1] < 1)) S.pos = [3, 12];
+  newEngine(); S.route = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
   S.assets = new AssetSim(S.space, S.W, S.H, 77); MT.log.length = 0; MT.b = {}; S.anchors.forEach(a => MT.update(a.id, a.x, -a.y, S.clock, true));
   fitView(); save(); Phone.cfgChanged();
 }
@@ -1082,12 +1113,12 @@ function newEngine() {
 }
 /* the filter's range-noise belief: dB shadowing is multiplicative in range (rel. error = sigma_dB*ln10/(10n)) */
 function engSigma() {
-  if (S.space === 'hospital') return Math.max(0.3, S.sigM * 0.75);
+  if (isSite()) return Math.max(0.3, S.sigM * 0.75);
   if (S.model === 'add') return Math.max(0.15, S.sigM);
   return Math.min(3, Math.max(0.2, S.sigDb * Math.LN10 / (10 * S.pn) * 0.4 * Math.hypot(S.W, S.H)));
 }
 function radioCfg() {
-  const hosp = S.space === 'hospital';
+  const hosp = isSite();
   return {
     model: S.model, loss: S.loss, rssi1m: S.rssi1m, n: S.pn, sigma: S.model === 'add' ? S.sigM : 0.6, sigmaDb: S.sigDb, wallDb: 6, obstructDb: 12, driftDb: 6, burst: hosp ? 0.004 : 0.002,
     wallBias: hosp ? 1.8 : 1.2, obstructBias: hosp ? 4 : 1.8, driftBias: hosp ? 2.5 : 1.2, dead: S.dead, obstruct: S.obstruct, drift: S.drift,
@@ -1097,6 +1128,8 @@ function radioCfg() {
 /* ---------- truth sources ---------- */
 let walker = null, keys = {}, joy = { x: 0, y: 0 }, target = null, demoI = 0;
 function demoPath() {
+  if (S.space === 'warehouse') return WAYPOINTS;
+  if (S.space === 'room' && S.plan.rooms.length) return S.plan.rooms.map(r => [(r.r[0] + r.r[2]) / 2, (r.r[1] + r.r[3]) / 2]).filter(p => p[0] > 0);   /* visit every zone (walls slide the walker to the doors) */
   if (S.space === 'hospital') return [[3, 12], [15, 12], [15, 4], [15, 12], [25, 12], [25, 4], [25, 12], [36, 12], [36, 19.5], [36, 12], [27, 12], [27, 19.5], [27, 12], [6, 12], [6, 19.5], [6, 12]];
   const W = S.W, H = S.H, a = 0.8, p = S.partition ? [[a, a], [W / 2 - .6, a], [W / 2 - .6, H / 2], [W / 2 + .6, H / 2], [W / 2 + .6, a], [W - a, a], [W - a, H - a], [W / 2 + .6, H - a], [W / 2 + .6, H / 2], [W / 2 - .6, H / 2], [W / 2 - .6, H - a], [a, H - a]] : [[a, a], [W - a, a], [W - a, H - a], [a, H - a]];
   return p;
@@ -1108,10 +1141,14 @@ function stepMove(dx, dy) {
   S.pos = [nx, ny];
 }
 function updateTruth(dt) {
-  const spd = S.space === 'hospital' ? 1.4 : 0.9;
+  const spd = isSite() ? 1.4 : 0.9;
   if (S.mode === 'live') return;   /* real radio: the only truth is where the user taps */
   if (S.calib != null) { const a = S.all[S.calib], rh = S.calD, cx = S.W / 2 - a.x, cy = S.H / 2 - a.y, L = Math.hypot(cx, cy) || 1; S.pos = [a.x + cx / L * rh, a.y + cy / L * rh]; return; }
-  if (S.src === 'demo') { const p = demoPath(); demoI %= p.length; if (moveToward(p[demoI][0], p[demoI][1], spd, dt)) demoI = (demoI + 1) % p.length; }
+  if (S.src === 'demo' && S.space === 'room' && S.plan.walls.length) {   /* floor plan with walls: walk zone to zone through the doors */
+    if (!S.route || !S.route.length) { const p = demoPath(); demoI %= p.length; S.route = gridRoute(S.pos, p[demoI], S.W, S.H); demoI++; }
+    const tg = S.route[0], b4 = S.pos.slice(); if (moveToward(tg[0], tg[1], spd, dt) || (S.pos[0] === b4[0] && S.pos[1] === b4[1])) S.route.shift();
+  }
+  else if (S.src === 'demo') { const p = demoPath(); demoI %= p.length; if (moveToward(p[demoI][0], p[demoI][1], spd, dt)) demoI = (demoI + 1) % p.length; }
   else if (S.src === 'touch') {
     let vx = (keys.d || keys.ArrowRight ? 1 : 0) - (keys.a || keys.ArrowLeft ? 1 : 0) + joy.x, vy = (keys.s || keys.ArrowDown ? 1 : 0) - (keys.w || keys.ArrowUp ? 1 : 0) + joy.y;
     const L = Math.hypot(vx, vy);
@@ -1164,7 +1201,7 @@ function layout(k) {
 }
 function buildTable() {
   document.querySelectorAll('#lays button').forEach(b => b.classList.toggle('on', +b.dataset.lay === S.n && S.all.every((a, i) => a.on === i < S.n)));
-  const hosp = S.space === 'hospital'; $('i-W').value = S.W; $('i-H').value = S.H; $('i-W').disabled = $('i-H').disabled = hosp;
+  const hosp = isSite(); $('i-W').value = S.W; $('i-H').value = S.H; $('i-W').disabled = $('i-H').disabled = hosp;
   $('bt').innerHTML = S.all.map((a, i) => `<tr class="${a.on ? '' : 'off'}" data-i="${i}"><td><b>${a.b}</b><span class="hd"></span></td><td><input type="checkbox"${a.on ? ' checked' : ''} aria-label="Beacon ${a.b} on"></td><td><input type="number" step="0.1" data-k="x" value="${a.x.toFixed(1)}"></td><td><input type="number" step="0.1" data-k="y" value="${a.y.toFixed(1)}"></td><td><input type="number" step="0.1" min="0" data-k="z" value="${a.z.toFixed(1)}"></td><td class="c-r">–</td><td class="c-d">–</td><td><div class="tb"><i style="width:0"></i></div></td><td><button class="cal${a.p1 != null ? ' set' : ''}">${p1Label(i)}</button></td></tr>`).join('');
   document.querySelectorAll('#bt tr').forEach(tr => {
     const i = +tr.dataset.i, a = S.all[i], ins = tr.querySelectorAll('input');
@@ -1386,7 +1423,7 @@ function draw() {
   poly([P(0, 0, 0), P(W, 0, 0), P(W, H, 0), P(0, H, 0)], '#FFFFFF', '#9CCFE0', 1.5);
   g.save(); g.globalAlpha = 0.55; const step = W > 14 ? 5 : 1;
   for (let x = step; x < W; x += step) line(P(x, 0, 0), P(x, H, 0), '#DDF0F6', 1); for (let y = step; y < H; y += step) line(P(0, y, 0), P(W, y, 0), '#DDF0F6', 1); g.restore();
-  if (S.space === 'hospital') ROOMS.forEach(r => { const [a, b, c, d] = r.r; poly([P(a, b, 0), P(c, b, 0), P(c, d, 0), P(a, d, 0)], r.id === 'corr' ? 'rgba(34,195,230,.07)' : 'rgba(16,185,129,.05)', null); const m = P((a + c) / 2, (b + d) / 2, 0); if (tilt > 45) { g.fillStyle = '#7A9AA6'; g.font = '600 11px Figtree'; g.textAlign = 'center'; g.fillText(r.name, m[0], m[1]); } });
+  if (ROOMS.length > 1) ROOMS.forEach(r => { const [a, b, c, d] = r.r; if (c <= a) return; poly([P(a, b, 0), P(c, b, 0), P(c, d, 0), P(a, d, 0)], r.id === 'corr' ? 'rgba(34,195,230,.07)' : 'rgba(16,185,129,.05)', null); const m = P((a + c) / 2, (b + d) / 2, 0); if (tilt > 45) { g.fillStyle = '#7A9AA6'; g.font = '600 11px Figtree'; g.textAlign = 'center'; g.fillText(r.name, m[0], m[1]); } });
   /* room box edges */
   const cs = [[0, 0], [W, 0], [W, H], [0, H]];
   if (tilt < 88) { poly(cs.map(c => P(c[0], c[1], Z)), null, 'rgba(14,157,190,.45)', 1.2); cs.forEach(c => line(P(c[0], c[1], 0), P(c[0], c[1], Z), 'rgba(14,157,190,.35)', 1.2)); }
@@ -1403,7 +1440,7 @@ function draw() {
   /* trails */
   const trl = (arr, col, wd) => { if (arr && arr.length > 1) { g.beginPath(); arr.forEach((q, i) => { const p = P(q[0], q[1], 0); i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]); }); g.strokeStyle = col; g.lineWidth = wd; g.stroke(); } };
   if (S.show.truth && S.showTrail) trl(S.trail, 'rgba(11,58,74,.35)', 2); if (S.show.locus && S.showTrail) trl(S.estTrail, 'rgba(16,185,129,.55)', 2);
-  drawSelfCheck(); drawBeaconMoves(); drawAssets(); drawOffRadar();
+  drawSelfCheck(); drawBeaconMoves(); drawAssets(); drawOffRadar(); drawEdit();
   if (S.mode === 'live' && S.liveTruth && !(c && c.truth)) { const p = P(S.liveTruth[0], S.liveTruth[1], 0); g.beginPath(); g.arc(p[0], p[1], 11, 0, 7); g.strokeStyle = COL.truth; g.lineWidth = 2.5; g.setLineDash([4, 3]); g.stroke(); g.setLineDash([]); g.fillStyle = COL.truth; g.font = '700 10.5px Figtree'; g.textAlign = 'center'; g.fillText('you (tapped)', p[0], p[1] - 15); }
   if (target && S.src === 'touch') { const p = P(target[0], target[1], 0); g.beginPath(); g.arc(p[0], p[1], 9, 0, 7); g.strokeStyle = '#10B981'; g.lineWidth = 2; g.stroke(); }
   /* objects sorted far -> near */
@@ -1459,10 +1496,10 @@ function renderAnchors() {
     el.querySelectorAll('input').forEach(inp => inp.onchange = () => { const a = S.anchors[+el.dataset.i], k = inp.dataset.k, v = parseFloat(inp.value); if (isNaN(v)) return; const c = Math.min(k === 'x' ? S.W : k === 'y' ? S.H : S.Z, Math.max(0, v)); if (k === 'z') { a.z = c; renderAnchorsDz(); buildTable(); Phone.cfgChanged(); } else { a.mv = false; placeBeacon(a, k === 'x' ? c : a.x, k === 'y' ? c : a.y, true); buildTable(); } });
   });
 }
-function relayout() { if (S.space === 'room') { setRoom(S.W, S.H, S.anchors, partitions()); } newEngine(); renderAnchors(); }
+function relayout() { if (S.space === 'room') { setRoom(S.W, S.H, S.anchors, partitions(), S.plan.rooms.length ? S.plan.rooms : null); } newEngine(); renderAnchors(); }
 function syncFaults() { const a = S.anchors[S.sel]; if (!a) return; document.querySelectorAll('#faults button').forEach(b => { const f = b.dataset.f; b.setAttribute('aria-pressed', f === 'clear' ? 'false' : String(S[f === 'dead' ? 'dead' : f].has(a.id))); }); }
 function spaceNote() {
-  $('n-space').innerHTML = S.space === 'room' ? 'Your own room: set its size and beacons in the <b>Beacons</b> tab (virtual BLE beacons in Demo, real phones in Receiver mode). Heights are set here.' : '<b>The 40 × 24 m hospital floor the ML model was trained on.</b> A synced phone walk is scaled up ×8 so crossing your room crosses a ward. The trained trust model is fully in-distribution here. Beacons 1-6 are the first six hospital anchors.';
+  $('n-space').innerHTML = S.space === 'room' ? 'Your own floor plan: set its size and beacons in the <b>Beacons</b> tab, draw walls and zones below, save it under <b>Saved layouts</b>. Real phones always use this.' : S.space === 'warehouse' ? '<b>Warehouse, 40 × 24 m:</b> receiving, three aisles with end-cap shelves, dispatch. Walls are fixed; beacon positions and heights are yours to move.' : '<b>The 40 × 24 m hospital floor the ML model was trained on.</b> Walls are fixed; beacon positions and heights are yours to move.';
   $('o-room').style.display = S.space === 'room' ? 'flex' : 'none';
   $('n-ml').innerHTML = { rules: '<b>Rules only:</b> residual against the motion model, sudden jumps and variance spikes. Every reason you see on a card comes from these checks.', ml: '<b>ML only:</b> a LightGBM model trained on ' + (TRUST_MODEL.n_train / 1000 | 0) + 'k simulated hospital readings (AUC ' + TRUST_MODEL.auc.toFixed(2) + ' vs ' + TRUST_MODEL.auc_heuristic.toFixed(2) + ' for the rules) scores each reading. It runs in your browser.', fused: '<b>Rules + ML (default):</b> both score every reading. When they agree the trust is their average; when either is sure a reading is bad (below 0.25) that one wins. So the ML catches what the rules miss, and the rules keep the ML honest outside its training data. Each card shows both scores.' }[S.scorer] + (S.space === 'room' && S.scorer !== 'rules' ? ' The ML was trained on a 40 × 24 m hospital; in a small room the rules carry more of the weight.' : '');
 }
@@ -1509,7 +1546,7 @@ function bindUI() {
     else if (mode === 'pinch' && ptrs.size === 2) { const p = [...ptrs.values()]; S.view.zoom = Math.min(4, Math.max(0.5, st.z * Math.hypot(p[0][0] - p[1][0], p[0][1] - p[1][1]) / st.d)); } };
   cv.onpointerup = cv.onpointercancel = e => { const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if (mode === 'anchor' && st.moved > 3) { renderAnchors(); buildTable(); }
-    else if (mode === 'orbit' && st.moved <= 5) { const u = V.U(x, y, 0); if (u[0] >= 0 && u[1] >= 0 && u[0] <= S.W && u[1] <= S.H) { if (S.mode === 'live') logTap(u); else if (S.src === 'touch') target = u; } }
+    else if (mode === 'orbit' && st.moved <= 5) { const u = V.U(x, y, 0); if (u[0] >= 0 && u[1] >= 0 && u[0] <= S.W && u[1] <= S.H && !editTap(u)) { if (S.mode === 'live') logTap(u); else if (S.src === 'touch') target = u; } }
     ptrs.delete(e.pointerId); if (!ptrs.size) { mode = null; cv.classList.remove('drag'); } };
   cv.onwheel = e => { e.preventDefault(); S.view.zoom = Math.min(4, Math.max(0.5, S.view.zoom * (e.deltaY < 0 ? 1.1 : 0.9))); };
   addEventListener('keydown', e => { if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true; if (S.mode === 'demo' && S.src !== 'touch' && /^(w|a|s|d|Arrow.*)$/.test(e.key) && !e.metaKey) setSource('touch'); if (e.key.startsWith('Arrow')) e.preventDefault(); });
@@ -1518,7 +1555,7 @@ function bindUI() {
   jy.onpointerdown = e => { jd = true; jy.setPointerCapture(e.pointerId); jm(e); }; jy.onpointermove = e => { if (jd) jm(e); }; jy.onpointerup = jy.onpointercancel = () => { jd = false; joy = { x: 0, y: 0 }; jk.style.transform = ''; };
   addEventListener('resize', resize);
 }
-function setSpace(sp) { S.space = sp; setSeg('spaces', 'sp', S.space); if (S.space === 'hospital') { S.k = 6; S.scale = 8; S.model = 'add'; $('i-model').value = 'add'; S.sigM = 0.8; sigUI(); S.pos = [3, 12]; } else { S.scale = 1; S.model = 'rssi'; $('i-model').value = 'rssi'; sigUI(); S.Z = +$('i-Z').value; S.k = 4; S.W = S.roomW || 5; S.H = S.roomH || 4; $('i-W').value = S.W; $('i-H').value = S.H; S.pos = [S.W / 2, S.H / 2]; S.all = null; } S.dead.clear(); S.obstruct.clear(); S.drift.clear(); demoI = 0; rebuild(false); spaceNote(); renderAnchors(); buildTable(); }
+function setSpace(sp) { S.space = sp; setSeg('spaces', 'sp', S.space); S.layName = { hospital: 'Hospital floor', warehouse: 'Warehouse' }[sp] || null; if (isSite()) { S.k = 6; S.scale = 8; S.model = 'add'; $('i-model').value = 'add'; S.sigM = 0.8; sigUI(); S.pos = [3, 12]; } else { S.scale = 1; S.model = 'rssi'; $('i-model').value = 'rssi'; sigUI(); S.Z = +$('i-Z').value; S.k = 4; S.W = S.roomW || 5; S.H = S.roomH || 4; $('i-W').value = S.W; $('i-H').value = S.H; S.pos = [S.W / 2, S.H / 2]; S.all = null; } S.dead.clear(); S.obstruct.clear(); S.drift.clear(); demoI = 0; rebuild(false); spaceNote(); renderAnchors(); buildTable(); if (typeof renderLayouts === 'function' && $('bp-list').children.length) { renderLayouts(); renderPlan(); } }
 function renderAnchorsDz() { document.querySelectorAll('#anchors .an').forEach(el => { const a = S.anchors[+el.dataset.i], dz = a.z - S.zDev, s = el.querySelector('.dz'); if (s) s.textContent = (dz >= 0 ? '↑ ' : '↓ ') + Math.abs(dz).toFixed(1) + ' m ' + (dz >= 0 ? 'above' : 'below') + ' phone'; }); }
 function sigUI() { const r = S.model === 'rssi', el = $('i-sig'); el.max = r ? 10 : 3; el.step = r ? 0.5 : 0.1; el.value = r ? S.sigDb : S.sigM; $('v-sig').textContent = el.value + (r ? ' dB' : ' m'); }
 function setSource(s) {
@@ -1560,13 +1597,13 @@ function loop(now) {
 function init() {
   $('i-W').value = S.W; $('i-H').value = S.H; $('i-Z').value = S.Z; $('v-Z').textContent = S.Z.toFixed(1); $('i-host').value = S.host || '';
   $('i-zd').value = S.zDev; $('v-zd').textContent = S.zDev.toFixed(2) + ' m'; S.zAssume = S.zDev; $('i-model').value = S.model; $('i-loss').value = S.loss * 100; $('v-loss').textContent = Math.round(S.loss * 100) + '%'; $('i-r1').value = S.rssi1m; $('i-pn').value = S.pn;
-  sigUI(); bindUI(); bindMore(); resize(); rebuild(false); buildTable(); spaceNote(); renderAnchors(); syncFaults(); syncView(); setSource('demo');
+  sigUI(); bindUI(); bindMore(); bindLayouts(); resize(); rebuild(false); buildTable(); spaceNote(); renderAnchors(); syncFaults(); syncView(); setSource('demo');
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
-  const sp = /[?&#]space=(room|hospital)/.exec(location.href); setSpace(sp ? sp[1] : 'hospital');
+  const sp = /[?&#]space=(room|hospital|warehouse)/.exec(location.href); setSpace(sp ? sp[1] : 'hospital');
   const jm = /[#&?]code=(\d{6})/.exec(location.href); if (jm) { setMode('live'); $('i-code').value = jm[1]; setTimeout(() => Phone.connect(jm[1]), 300); }
   buildAccess(); renderObjects(); requestAnimationFrame(loop);
   window.update_beacon_position = updateBeaconPosition;
-  window.__locus = { Phone, S, tick, MT, Alerts, gateRun, addCal, placeBeacon, updateBeaconPosition, get eng() { return eng; }, get cur() { return cur; }, get stats() { return stats; }, setSource, setMode, rebuild, layout, health, measureBeacon, calibrate, logTap, liveMeas, setFault, updateTrust, get TH() { return TH; }, get TMARK() { return TMARK; } };
+  window.__locus = { screen(x, y) { const r = cv.getBoundingClientRect(), p = V.P(x, y, 0); return [r.left + p[0], r.top + p[1]]; }, Phone, S, tick, MT, Alerts, gateRun, addCal, placeBeacon, updateBeaconPosition, get eng() { return eng; }, get cur() { return cur; }, get stats() { return stats; }, setSource, setMode, rebuild, layout, health, measureBeacon, calibrate, logTap, liveMeas, setFault, updateTrust, get TH() { return TH; }, get TMARK() { return TMARK; } };
 }
 /* ===== dashboard part 2: moving beacons, tagged objects, off radar + self-check, access gates, receiver-phone link ===== */
 
@@ -1577,7 +1614,7 @@ function init() {
 const MT = new MoveTracker({ threshold: 0.1, smoothing: 0.5, trailLen: 15, recentSec: 10, speedSec: 1, settleSec: 0.8, turnDeg: 35, arrowHoldSec: 8, logMax: 120 });
 /* walking is simulated motion, so it is offered only when the radio is simulated too (Demo, or a linked phone in Simulation mode) */
 const canWalk = () => S.mode !== 'live' || S.phoneSrc === 'sim';
-const MVR = () => S.space === 'hospital' ? 3 : Math.max(0.5, Math.min(1.2, 0.25 * Math.min(S.W, S.H)));
+const MVR = () => S.space !== 'room' ? 3 : Math.max(0.5, Math.min(1.2, 0.25 * Math.min(S.W, S.H)));
 function moveBeacons(dt) {
   const rr = eng.rng;
   S.anchors.forEach((a, i) => {
@@ -1761,7 +1798,7 @@ const Phone = (() => {
   }
   function send(m) { return relay ? relay.send(m) : false; }
   function leave(quiet) { if (relay) relay.close(); relay = null; if (S.linkKind === 'code') { S.link = false; S.linkKind = null; S.phoneTruth = null; srcPill(); } if (!quiet) { say('Not linked.'); code = null; $('b-unpair').disabled = true; } }
-  function cfg() { return { space: S.space, W: S.W, H: S.H, Z: S.Z, model: S.model, sigDb: S.sigDb, sigM: S.sigM, loss: S.loss, rssi1m: S.rssi1m, pn: S.pn, scorer: S.scorer, anchors: S.anchors.map(a => [a.b, +a.x.toFixed(2), +a.y.toFixed(2), +a.z.toFixed(2), a.p1, a.n, +a.tx.toFixed(2), +a.ty.toFixed(2)]) }; }
+  function cfg() { return { space: S.space, walls: S.space === 'room' ? partitions() : [], rooms: S.space === 'room' ? S.plan.rooms : [], W: S.W, H: S.H, Z: S.Z, model: S.model, sigDb: S.sigDb, sigM: S.sigM, loss: S.loss, rssi1m: S.rssi1m, pn: S.pn, scorer: S.scorer, anchors: S.anchors.map(a => [a.b, +a.x.toFixed(2), +a.y.toFixed(2), +a.z.toFixed(2), a.p1, a.n, +a.tx.toFixed(2), +a.ty.toFixed(2)]) }; }
   function pump(now) {
     if (!relay || !relay.on) return;
     if (now - joinT > 2000) { joinT = now; send({ t: 'join' }); }
@@ -1776,6 +1813,7 @@ const Phone = (() => {
 
 /* ---------- part-2 UI wiring ---------- */
 function bindMore() {
+  $('b-rail-lay') && ($('b-rail-lay').onclick = () => document.querySelector('.tabs button[data-t=beacons]').click());
   document.querySelectorAll('.rail a[data-tab]').forEach(l => l.addEventListener('click', () => { const b = document.querySelector('.tabs button[data-t=' + l.dataset.tab + ']'); if (b) b.click(); }));
   $('b-pair').onclick = () => Phone.connect($('i-code').value); $('i-code').onkeydown = e => { if (e.key === 'Enter') Phone.connect($('i-code').value); };
   $('b-unpair').onclick = () => Phone.leave();
@@ -1795,6 +1833,114 @@ function dashIsha(q) {
   const r = ishaAsk(q, { assets: S.assets.list(), me, alerts: alertList(), beacons: S.anchors.map((a, j) => ({ b: a.b, z: a.z, ok: !!(cur && cur.meas[j]) && !Alerts.repair.has(a.id), trust: o ? o.trust[j] : 0, range: cur && cur.meas[j] ? cur.meas[j].r3 : null, why: o ? o.reasons[j] : '' })), person: id => gateRun({ role: 'admin', device: 'reg', inside: true, poc: true, via: 'dashboard' }) });
   if (r.focus) { S.focus = r.focus; updateObjects(); }
   const box = $('isha-a'); box.innerHTML = '<div class="q">' + q.replace(/[<>&]/g, '') + '</div><div class="a">' + r.text.replace(/[<>&]/g, '') + '</div>' + box.innerHTML; while (box.children.length > 8) box.lastChild.remove();
+}
+/* ===== dashboard part 3: saved layouts and blueprints =====
+   A layout = floor plan (size, walls with doors, named zones) + the 6 beacon slots (position, height, on/off, calibration).
+   Built in: Hospital floor and Warehouse (the trained 40 x 24 m maps, positions of beacons editable, walls fixed).
+   Editable examples: Clinic OPD, Office floor, Home 2BHK. Draw / erase walls, add zones, move beacons, then save. */
+const LAY_KEY = 'locus.isha.layouts.v1';
+const W2 = (x1, y1, x2, y2, door) => door ? (x1 === x2 ? [[x1, y1, x1, door[0]], [x1, door[1], x1, y2]] : [[x1, y1, door[0], y1], [door[1], y1, x2, y1]]) : [[x1, y1, x2, y2]];
+const BP_EXAMPLES = [
+  { name: 'Clinic OPD', icon: '🩺', W: 14, H: 9, Z: 3,
+    rooms: [['wait', 'Waiting area', 0, 0, 6, 9], ['c1', 'Consult 1', 6, 0, 10, 4], ['c2', 'Consult 2', 10, 0, 14, 4], ['corr', 'Corridor', 6, 4, 14, 5.5], ['pharm', 'Pharmacy', 6, 5.5, 14, 9]],
+    walls: [...W2(6, 0, 6, 9, [4, 5.5]), ...W2(6, 4, 14, 4, [7.4, 8.6]), ...W2(10, 0, 10, 4), ...W2(10, 4, 14, 4, [11.4, 12.6]), ...W2(6, 5.5, 14, 5.5, [9.4, 10.6])].map(w => w),
+    beacons: [[0.4, 0.4, 2.4], [8, 0.4, 0.9], [13.6, 2, 2.4], [13.6, 8.6, 0.9], [7, 8.6, 2.4], [0.4, 8.6, 0.9]], k: 6 },
+  { name: 'Office floor', icon: '💼', W: 18, H: 10, Z: 3,
+    rooms: [['desk', 'Open desks', 0, 0, 12, 10], ['meet', 'Meeting room', 12, 0, 18, 5], ['srv', 'Server room', 12, 5, 18, 10]],
+    walls: [...W2(12, 0, 12, 10, [3.8, 5.0]), ...W2(12, 5, 18, 5, [14.4, 15.6]), ...W2(12, 5, 12, 10, [7, 8.2])].filter((w, i, a) => true),
+    beacons: [[0.4, 0.4, 2.6], [6, 9.6, 0.9], [11.6, 0.4, 2.6], [17.6, 0.4, 0.9], [17.6, 9.6, 2.6], [0.4, 9.6, 0.9]], k: 5 },
+  { name: 'Home 2BHK', icon: '🏠', W: 10, H: 8, Z: 2.8,
+    rooms: [['liv', 'Living room', 0, 0, 6, 5], ['bed1', 'Bedroom 1', 6, 0, 10, 4], ['bed2', 'Bedroom 2', 6, 4, 10, 8], ['kit', 'Kitchen', 0, 5, 6, 8]],
+    walls: [...W2(6, 0, 6, 8, [1.6, 2.6]), ...W2(6, 4, 10, 4), ...W2(0, 5, 6, 5, [2.5, 3.5])],
+    beacons: [[0.4, 0.4, 2.3], [5.6, 4.6, 0.9], [9.6, 0.4, 2.3], [9.6, 7.6, 0.9], [0.4, 7.6, 2.3], [3, 0.4, 0.9]], k: 4 },
+];
+/* the office's x = 12 wall is drawn once with two doors */
+BP_EXAMPLES[1].walls = [[12, 0, 12, 3.8], [12, 5, 12, 7], [12, 8.2, 12, 10], ...W2(12, 5, 18, 5, [14.4, 15.6])];
+const BP_SITES = [{ name: 'Hospital floor', icon: '🏥', site: 'hospital', note: '40 × 24 m, 9 rooms, the map the ML was trained on' }, { name: 'Warehouse', icon: '📦', site: 'warehouse', note: '40 × 24 m, 3 aisles with shelves' }];
+function exampleLayout(e) {
+  return { v: 1, name: e.name, icon: e.icon, space: 'room', W: e.W, H: e.H, Z: e.Z, walls: e.walls.map(w => w.slice()), rooms: e.rooms.map(r => ({ id: r[0], name: r[1], r: r.slice(2) })),
+    slots: e.beacons.map((b, i) => ({ x: b[0], y: b[1], z: b[2], on: i < e.k, p1: null, n: null, cal: null })) };
+}
+const LS2 = (v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem(LAY_KEY)); localStorage.setItem(LAY_KEY, JSON.stringify(v)); } catch (e) { } return null; };
+function layoutStore() { let L = LS2(); if (!L || typeof L !== 'object') { L = {}; BP_EXAMPLES.forEach(e => L[e.name] = exampleLayout(e)); LS2(L); } return L; }
+/* the current setup as a layout */
+function snapshotLayout(name) {
+  const site = S.space !== 'room';
+  return { v: 1, name, icon: site ? (BP_SITES.find(b => b.site === S.space) || {}).icon : '📐', space: S.space, W: S.W, H: S.H, Z: S.Z, walls: site ? [] : S.plan.walls.map(w => w.map(v => +v.toFixed(2))), rooms: site ? [] : S.plan.rooms.map(r => ({ id: r.id, name: r.name, r: r.r.map(v => +v.toFixed(2)) })),
+    slots: S.all.map(a => ({ x: +a.x.toFixed(2), y: +a.y.toFixed(2), z: +a.z.toFixed(2), on: a.on, p1: a.p1, n: a.n, cal: a.cal })) };
+}
+function applyLayout(L) {
+  if (!L || !Array.isArray(L.slots)) throw new Error('not a LOCUS layout');
+  const num = (v, lo, hi, d) => isFinite(+v) && v !== null && v !== '' ? Math.min(hi, Math.max(lo, +v)) : d;
+  if (S.mode === 'live' && L.space !== 'room') throw new Error('real phones need a room layout; switch the source to Demo to open a site');
+  if (L.space === 'hospital' || L.space === 'warehouse') { setSpace(L.space); }
+  else {
+    S.plan = { walls: (L.walls || []).filter(w => w.length === 4 && w.every(isFinite)).map(w => w.map(Number)), rooms: (L.rooms || []).filter(r => r && r.name && r.r && r.r.length === 4).map((r, i) => ({ id: String(r.id || 'z' + i), name: String(r.name).slice(0, 30), r: r.r.map(Number) })) };
+    S.roomW = num(L.W, 2, 40, 5); S.roomH = num(L.H, 2, 24, 4); $('i-Z').value = num(L.Z, 2, 8, 2.7); setSpace('room');
+  }
+  S.all = Array.from({ length: 6 }, (_, i) => { const q = L.slots[i] || {}, a = S.all[i] || {}; return { ...a, id: 'A' + (i + 1), b: i + 1, x: num(q.x, 0, S.W, a.x), y: num(q.y, 0, S.H, a.y), z: num(q.z, 0, S.Z, a.z), on: q.on != null ? !!q.on : a.on, p1: q.p1 != null ? +q.p1 : null, n: q.n != null ? +q.n : null, cal: Array.isArray(q.cal) ? q.cal : null, mv: false }; });
+  if (!S.all.some(a => a.on)) S.all[0].on = true;
+  S.k = S.all.filter(a => a.on).length; rebuild(true); buildTable(); renderAnchors(); spaceNote(); S.layName = L.name || null; renderLayouts(); Phone.cfgChanged();
+}
+function renderLayouts() {
+  const L = layoutStore(), cur = S.layName;
+  $('bp-list').innerHTML = BP_SITES.map(b => `<button class="bp${cur === b.name ? ' on' : ''}" data-site="${b.site}"><i>${b.icon}</i><b>${b.name}</b><span>${b.note}</span><em>built in</em></button>`).join('') +
+    Object.keys(L).map(k => `<button class="bp${cur === k ? ' on' : ''}" data-name="${escH(k)}"><i>${L[k].icon || '📐'}</i><b>${escH(k)}</b><span>${L[k].space === 'room' ? L[k].W + ' × ' + L[k].H + ' m · ' + (L[k].rooms || []).length + ' zones · ' + (L[k].walls || []).length + ' walls' : L[k].space}</span><em>editable</em></button>`).join('');
+  $('l-name').placeholder = 'Name, e.g. ' + (S.space === 'room' ? 'Ward 7 night shift' : 'My ' + S.space);
+}
+const escH = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+function lnote(t, bad) { $('l-note').textContent = t; $('l-note').style.color = bad ? '#b13a3a' : ''; }
+
+/* ---------- floor-plan editing (My room / editable blueprints): walls and zones, by tapping the floor in the view ---------- */
+const ED = { mode: null, p: null, hover: null };
+function editTap(u) {
+  if (!ED.mode || S.space !== 'room') return false;
+  const snap = v => Math.round(v * 10) / 10, p = [snap(u[0]), snap(u[1])];
+  if (ED.mode === 'erase') {
+    let best = -1, bd = 0.6; S.plan.walls.forEach((w, i) => { const d = segDist(p, w); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { S.plan.walls.splice(best, 1); planChanged('Wall removed.'); } else lnote('Tap closer to a wall to erase it.'); return true;
+  }
+  if (!ED.p) { ED.p = p; lnote(ED.mode === 'wall' ? 'Now tap where the wall ends.' : 'Now tap the opposite corner of the zone.'); return true; }
+  const a = ED.p; ED.p = null;
+  if (ED.mode === 'wall') {
+    let q = p; if (Math.abs(p[0] - a[0]) < Math.abs(p[1] - a[1]) * 0.3) q = [a[0], p[1]]; else if (Math.abs(p[1] - a[1]) < Math.abs(p[0] - a[0]) * 0.3) q = [p[0], a[1]];   /* nearly straight -> straight */
+    if (Math.hypot(q[0] - a[0], q[1] - a[1]) < 0.3) { lnote('Too short. Tap two points further apart.', 1); return true; }
+    S.plan.walls.push([a[0], a[1], q[0], q[1]]); planChanged('Wall added (' + Math.hypot(q[0] - a[0], q[1] - a[1]).toFixed(1) + ' m). Tap again for another, or Done.');
+  } else {
+    const nm = ($('z-name').value || '').trim().slice(0, 30) || 'Zone ' + (S.plan.rooms.length + 1), r = [Math.min(a[0], p[0]), Math.min(a[1], p[1]), Math.max(a[0], p[0]), Math.max(a[1], p[1])];
+    if (r[2] - r[0] < 0.5 || r[3] - r[1] < 0.5) { lnote('Zone too small.', 1); return true; }
+    S.plan.rooms.unshift({ id: 'z' + Date.now() % 1e6, name: nm, r }); $('z-name').value = ''; planChanged('Zone "' + nm + '" added. ISHA and alerts now use it.');
+  }
+  return true;
+}
+function segDist(p, w) { const dx = w[2] - w[0], dy = w[3] - w[1], L = dx * dx + dy * dy, t = L ? Math.max(0, Math.min(1, ((p[0] - w[0]) * dx + (p[1] - w[1]) * dy) / L)) : 0; return Math.hypot(p[0] - w[0] - t * dx, p[1] - w[1] - t * dy); }
+function planChanged(msg) { S.route = null; setRoom(S.W, S.H, S.anchors, partitions(), S.plan.rooms.length ? S.plan.rooms : null); newEngine(); S.assets = new AssetSim(S.space, S.W, S.H, 77); save(); Phone.cfgChanged(); renderPlan(); if (msg) lnote(msg); }
+function setEdit(m) { ED.mode = ED.mode === m ? null : m; ED.p = null; document.querySelectorAll('#ed-tools [data-ed]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ed === ED.mode))); if (ED.mode) { setView('top'); lnote(ED.mode === 'wall' ? 'Tap where the wall starts on the floor.' : ED.mode === 'zone' ? 'Type the zone name, then tap two opposite corners.' : 'Tap a wall to erase it.'); } else lnote('Editing off.'); }
+function renderPlan() {
+  const room = S.space === 'room'; $('ed-box').style.display = room ? 'flex' : 'none';
+  if (!room) return; $('z-list').innerHTML = S.plan.rooms.map((r, i) => `<span class="zchip">${escH(r.name)} <button data-z="${i}" aria-label="Remove ${escH(r.name)}">×</button></span>`).join('') || '<span class="note">No zones yet: the room is split into four beds.</span>';
+  $('ed-sum').textContent = S.W + ' × ' + S.H + ' m · ' + S.plan.walls.length + ' walls · ' + S.plan.rooms.length + ' zones';
+}
+function drawEdit() {
+  if (!ED.p || S.space !== 'room') return; const p = P(ED.p[0], ED.p[1], 0); g.beginPath(); g.arc(p[0], p[1], 7, 0, 7); g.fillStyle = '#F5A524'; g.fill();
+}
+function bindLayouts() {
+  $('bp-list').onclick = e => {
+    const b = e.target.closest('.bp'); if (!b) return;
+    try { if (b.dataset.site) { applyLayout({ name: b.querySelector('b').textContent, space: b.dataset.site, slots: [] }); lnote('Opened ' + b.querySelector('b').textContent + '. Move beacons in the view, then Save as… to keep your version.'); }
+      else { const L = layoutStore()[b.dataset.name]; applyLayout(L); $('l-name').value = b.dataset.name; lnote('Opened "' + b.dataset.name + '". Edit walls, zones and beacons in the Space tab, then Save.'); } }
+    catch (x) { lnote('Could not open: ' + x.message, 1); }
+  };
+  $('l-save').onclick = () => { const nm = ($('l-name').value || '').trim().slice(0, 40) || S.layName; if (!nm) { lnote('Type a name first.', 1); return; } if (BP_SITES.some(b => b.name === nm)) { lnote('That name is a built-in blueprint. Pick another name.', 1); return; } const L = layoutStore(); L[nm] = snapshotLayout(nm); LS2(L); S.layName = nm; $('l-name').value = nm; renderLayouts(); lnote('Saved "' + nm + '" in this browser.'); };
+  $('l-del').onclick = () => { const nm = S.layName, L = layoutStore(); if (!nm || !L[nm]) { lnote('Open one of your editable layouts first.', 1); return; } delete L[nm]; LS2(L); S.layName = null; renderLayouts(); lnote('Deleted "' + nm + '".'); };
+  $('l-reset').onclick = () => { const L = layoutStore(); BP_EXAMPLES.forEach(e => L[e.name] = exampleLayout(e)); LS2(L); renderLayouts(); lnote('The three example blueprints are back to their original versions.'); };
+  $('l-exp').onclick = () => { const L = snapshotLayout(S.layName || 'LOCUS layout'), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(L, null, 1)], { type: 'application/json' })); a.download = (L.name || 'locus_layout').replace(/[^\w-]+/g, '_') + '.json'; a.click(); };
+  $('l-imp').onclick = () => $('l-file').click();
+  $('l-file').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { const L = JSON.parse(r.result), nm = (L.name || f.name.replace(/\.json$/, '')).slice(0, 40), st = layoutStore(); L.name = nm; st[nm] = L; LS2(st); applyLayout(L); lnote('Imported "' + nm + '".'); } catch (x) { lnote('Could not import: ' + x.message, 1); } }; r.readAsText(f); e.target.value = ''; };
+  document.querySelectorAll('#ed-tools [data-ed]').forEach(b => b.onclick = () => setEdit(b.dataset.ed));
+  $('ed-clear').onclick = () => { S.plan = { walls: [], rooms: [] }; planChanged('Walls and zones cleared.'); };
+  $('z-list').onclick = e => { const b = e.target.closest('button[data-z]'); if (b) { S.plan.rooms.splice(+b.dataset.z, 1); planChanged('Zone removed.'); } };
+  renderLayouts(); renderPlan();
 }
 
 init();

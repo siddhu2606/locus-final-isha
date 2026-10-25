@@ -27,7 +27,7 @@ const ASSETS = [
 ];
 /* zone names: hospital rooms come from the floor map; "My room" is treated as Ward B and split into four beds */
 function zoneOf(space, x, y, W, H) {
-  if (space === 'hospital') return roomName(roomAt(x, y));
+  if (space !== 'room' || ROOMS.length > 1) return roomName(roomAt(x, y));
   return 'Ward B · bed ' + (9 + (x >= W / 2 ? 1 : 0) + (y >= H / 2 ? 2 : 0));
 }
 function wardOf(space, x, y, W, H) { const z = zoneOf(space, x, y, W, H); return z.split(' · ')[0]; }
@@ -67,4 +67,17 @@ class AssetSim {
   /* compact list for the phone / ISHA */
   list() { return this.items.map(a => ({ id: a.id, type: a.type, name: a.name, pos: a.est, zone: a.zone, conf: a.conf, z: a.z, ago: a.seen == null ? null : this.t - a.seen, online: a.seen != null && this.t - a.seen < 3, ward: a.ward, bed: a.bed })); }
 }
-if (typeof module !== 'undefined') module.exports = { ASSET_TYPES, ASSETS, zoneOf, wardOf, dirFrom, AssetSim };
+
+/* walking route through doors on a floor plan with walls: breadth-first search on a 0.5 m grid, then drop the in-between points */
+function gridRoute(a, b, W, H) {
+  const s = 0.5, nx = Math.max(1, Math.round(W / s)), ny = Math.max(1, Math.round(H / s)), cx = i => (i + 0.5) * W / nx, cy = j => (j + 0.5) * H / ny;
+  const ci = x => Math.min(nx - 1, Math.max(0, Math.floor(x / W * nx))), cj = y => Math.min(ny - 1, Math.max(0, Math.floor(y / H * ny)));
+  const start = cj(a[1]) * nx + ci(a[0]), goal = cj(b[1]) * nx + ci(b[0]), prev = new Int32Array(nx * ny).fill(-1); prev[start] = start; const q = [start];
+  while (q.length) { const c = q.shift(); if (c === goal) break; const i = c % nx, j = (c / nx) | 0;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([di, dj]) => { const i2 = i + di, j2 = j + dj; if (i2 < 0 || j2 < 0 || i2 >= nx || j2 >= ny) return; const n = j2 * nx + i2; if (prev[n] >= 0 || crossesWall(cx(i), cy(j), cx(i2), cy(j2))) return; prev[n] = c; q.push(n); }); }
+  if (prev[goal] < 0) return [b.slice()];
+  const cells = []; for (let c = goal; c !== start; c = prev[c]) cells.push([cx(c % nx), cy((c / nx) | 0)]); cells.reverse(); cells.push(b.slice());
+  const out = []; let from = a; for (let k = 0; k < cells.length; k++) { const nxt = cells[k + 1]; if (!nxt || crossesWall(from[0], from[1], nxt[0], nxt[1])) { out.push(cells[k]); from = cells[k]; } }
+  return out;
+}
+if (typeof module !== 'undefined') module.exports = { gridRoute, ASSET_TYPES, ASSETS, zoneOf, wardOf, dirFrom, AssetSim };
