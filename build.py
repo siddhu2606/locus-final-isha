@@ -4,7 +4,7 @@ import pathlib, shutil
 R = pathlib.Path(__file__).parent
 r = lambda f: (R / f).read_text(encoding='utf-8')
 vendor = ''   # no third-party libraries: the code link is our own small MQTT client (src/relay.js)
-shared = r('src/engine.js') + r('src/trust_model.js') + r('src/room_core.js') + r('src/radio.js') + r('src/assets.js') + r('src/access.js') + r('src/isha.js') + r('src/relay.js')
+shared = r('src/engine.js') + r('src/trust_model.js') + r('src/room_core.js') + r('src/radio.js') + r('src/assets.js') + r('src/access.js') + r('src/isha.js') + r('src/relay.js') + r('src/beaconmove.js')
 
 # the head of the dashboard template (CSS) is kept in _head.html, the rest in _body.html
 (R / 'src/dashboard.template.html').write_text(r('src/_head.html') + r('src/_body.html'), encoding='utf-8')

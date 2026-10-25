@@ -20,6 +20,11 @@ Indoor positioning with a few phones as Bluetooth beacons, a trust scorer (rules
 | **Phone app** (`phone.html`, same UI in the APK) | **This phone is a BEACON** (number + height) or **the RECEIVER** (real Bluetooth or simulation). Receiver = **Radar** (map, beacons, calibration, code) · **Staff** (find equipment, patient through the gates, alerts) · **ISHA** (voice or chat). |
 | **ISHA** | Offline. "Where is the nearest wheelchair?", "oxygen kahan hai", "where am I", "is beacon 3 working", "any alerts", "where is P-112" (goes through the gates). Voice in and out (Android speech, or Chrome). |
 
+## Carried beacons move on screen by themselves
+Like LOCUS Trio, every beacon phone also **listens to the other beacons** and reads its **own motion sensors**. Its Bluetooth packet carries: moving yes/no, step count, compass heading, and the RSSI it hears from each other beacon (`L C id height flags steps heading/2 r1..r6`). When a beacon is carried, its steps and compass guess where it went, and its distances to the beacons that stayed put correct it (known walls on the floor plan are accounted for). The beacon-to-beacon radio model fits itself from the still beacons. No dragging needed; the receiver forwards everything to the dashboard.
+
+Tested in simulation (`node scripts/test_beaconmove.js`, `node scripts/test_carry_browser.js`): a beacon carried 5 m ends 0.2-0.3 m from its true spot; while walking it stays within about 0.8 m; median 0.3-0.6 m in the open room, Home, Office and Hospital blueprints. Needs at least 2 beacons that stay put (1.2 m with only 2). On the emulator, 12 shakes gave 12 steps and the moving flag. Not yet tried with real phones being carried.
+
 ## Distance fix (13 cm read as 3.2 m)
 A phone that really reads −70 dBm at 13 cm is called 3.16 m away if we assume the textbook −59 dBm at 1 m. Phones differ by 10 dB or more, so every beacon is now **calibrated at a known distance**: 10 cm, 50 cm, 1 m or 2 m (Beacons tab, or **Cal** on the phone). One distance sets the beacon's RSSI at 1 m; two distances also fit the fade exponent *n*. Ranges under 1 m are shown in cm. Tested: after calibration the same −70 dBm reads **13 cm**.
 

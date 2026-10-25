@@ -19,7 +19,7 @@ const { launch } = require('./cdp.js'); let fail = 0; const ok = (c, m) => { con
   /* ISHA */
   await B.ev(`__phone.P.voice = false; document.querySelector('#tabs [data-s=isha]').click(); __phone.ask('where is the nearest wheelchair?')`);
   const a1 = await B.ev(`[...document.querySelectorAll('#chat .msg.a')].pop().textContent`);
-  ok(/wheelchair is WC-0\d/.test(a1) && /m (north|south|east|west)/.test(a1), 'ISHA finds the nearest wheelchair: ' + a1);
+  ok(/wheelchair is WC-0\d/.test(a1) && /m (north|south|east|west)|right next to you/.test(a1), 'ISHA finds the nearest wheelchair: ' + a1);
   await B.ev(`__phone.ask('oxygen kahan hai')`); const a2 = await B.ev(`[...document.querySelectorAll('#chat .msg.a')].pop().textContent`);
   ok(/oxygen cylinder is O2-0\d/.test(a2), 'ISHA understands Hinglish: ' + a2);
   await B.ev(`__phone.ask('is beacon 2 working')`); ok(/Beacon 2 \(.* m high\) is working/.test(await B.ev(`[...document.querySelectorAll('#chat .msg.a')].pop().textContent`)), 'ISHA reports beacon health with height');

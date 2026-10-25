@@ -47,7 +47,7 @@ function rebuild(keepAnchors) {
   if (S.space === 'room') setRoom(S.W, S.H, S.anchors, partitions(), S.plan.rooms.length ? S.plan.rooms : null);
   S.pos = [Math.min(S.W - .2, Math.max(.2, S.pos[0])), Math.min(S.H - .2, Math.max(.2, S.pos[1]))];
   if (isSite() && (S.pos[0] < 1 || S.pos[1] < 1)) S.pos = [3, 12];
-  newEngine(); S.route = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
+  newEngine(); resetSense(); S.route = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; S.liveTruth = null;
   S.assets = new AssetSim(S.space, S.W, S.H, 77); MT.log.length = 0; MT.b = {}; S.anchors.forEach(a => MT.update(a.id, a.x, -a.y, S.clock, true));
   fitView(); save(); Phone.cfgChanged();
 }
@@ -249,7 +249,7 @@ let stats = { loc: [], ls: [], kf: [] }, logRows = [], cur = null;
 function tick() {
   const dt = 0.1, live = S.mode === 'live', now = performance.now(), simTruth = live && S.phoneTruth && now - S.phoneTruthT < 1500;   /* a phone in Simulation mode also sends where it really is */
   const truth = live ? (simTruth ? S.phoneTruth.slice() : null) : S.pos.slice(), zTrue = S.calib != null && !live ? S.all[S.calib].z : S.zDev, assumed = S.calib != null && !live ? zTrue : S.zKnow ? S.zDev : S.zAssume;
-  S.clock += dt; if (canWalk()) moveBeacons(dt);
+  S.clock += dt; if (canWalk()) moveBeacons(dt); beaconSense(live);
   const real = S.anchors.map(a => a.tx === a.x && a.ty === a.y ? a : { ...a, x: a.tx, y: a.ty });   /* radio uses where the beacon REALLY is; the engine only knows its believed position */
   let meas = live ? liveMeas(assumed) : measure3D(truth, zTrue, assumed, real, radioCfg(), eng.rng, wallsBetween);
   if (S.shield) meas = meas.map(() => null);

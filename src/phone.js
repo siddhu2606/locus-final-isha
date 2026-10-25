@@ -13,6 +13,8 @@ const P = {
   linked: false, dash: null, dashT: 0, assets: null, focus: null, staff: Object.assign({ role: 'nurseB', reg: true, poc: true }, LSget().staff || {}), voice: true, ftype: 'wheelchair',
 };
 let eng = null, rng = rngMake(5), asim = null;
+/* carried beacons: each beacon phone's own telemetry (moving, steps, compass, what it hears) arrives inside its packet */
+const BMV = new BeaconMover(), TELE = {}; let clock = 0;
 /* ---------- space + beacons ---------- */
 function defaultAnchors() {
   if (P.space === 'warehouse') return ANCHORS.map((a, i) => [i + 1, a.x, a.y, i % 2 ? 0.9 : 2.6]);
@@ -26,6 +28,7 @@ function setupSpace(c) {
   const list = c ? c.anchors : defaultAnchors();
   P.anchors = list.map(q => ({ id: 'A' + q[0], b: q[0], x: q[1], y: q[2], z: q[3], p1: q[4] != null ? q[4] : null, n: q[5] || null, tx: q[6] != null ? q[6] : q[1], ty: q[7] != null ? q[7] : q[2] }));
   P.anchors.forEach(a => { const k = P.cal[a.b]; if (a.p1 == null && k) { a.p1 = k.p1; a.n = k.n; } });
+  BMV.reset();
   eng = new Locus(P.anchors, { N: 300, sigma: P.space === 'hospital' ? 0.6 : 0.5, rng: rngMake(11), inflate: 2.0, scorer: typeof trustPredict === 'function' ? trustPredict : null, mode: P.scorer });
   asim = new AssetSim(P.space, P.W, P.H, 77);
   if (!P.truth || P.truth[0] > P.W || P.truth[1] > P.H) P.truth = P.space === 'hospital' ? [3, 12] : [P.W / 2, P.H / 2];
@@ -33,8 +36,8 @@ function setupSpace(c) {
 }
 const SIGKEY = () => P.anchors.map(a => [a.b, a.x, a.y, a.z, a.p1, a.n].join(',')).join('|') + P.space + P.W + P.H;
 /* ---------- radio input ---------- */
-window.__bleBatch = arr => { const now = performance.now(); (typeof arr === 'string' ? JSON.parse(arr) : arr).forEach(q => { P.samples.push({ b: q[0], rssi: q[1], t: now, h: q[2] }); P.heard[q[0]] = now; Link.queue(q[0], q[1], q[2]); }); };
-window.__nativeEvent = e => { e = typeof e === 'string' ? JSON.parse(e) : e; if (e.type === 'speech') onSpeech(e.text); else if (e.type === 'speechEnd') micOff(); else if (e.type === 'status') status(e.text); else if (e.type === 'adv') { P.adv = !!e.on; $('bstat').textContent = e.text; $('bpulse').classList.toggle('on', P.adv); } };
+window.__bleBatch = arr => { const now = performance.now(); (typeof arr === 'string' ? JSON.parse(arr) : arr).forEach(q => { if (q.length >= 12) { const pe = {}; for (let k = 0; k < 6; k++) if (q[6 + k]) pe[k + 1] = q[6 + k]; TELE[q[0]] = { moving: !!(q[3] & 1), steps: q[4], head: q[3] & 2 ? q[5] * 2 : null, peers: pe, f: q[3], raw: q[5], t: clock }; } P.samples.push({ b: q[0], rssi: q[1], t: now, h: q[2] }); P.heard[q[0]] = now; Link.queue(q[0], q[1], q[2]); }); };
+window.__nativeEvent = e => { e = typeof e === 'string' ? JSON.parse(e) : e; if (e.type === 'self') selfStatus(e); else if (e.type === 'speech') onSpeech(e.text); else if (e.type === 'speechEnd') micOff(); else if (e.type === 'status') status(e.text); else if (e.type === 'adv') { P.adv = !!e.on; $('bstat').textContent = e.text; $('bpulse').classList.toggle('on', P.adv); } };
 function simRadio(dt) {   /* this phone walks the floor; every beacon's RSSI is simulated from its true position (10 packets/s) */
   const W = P.W, H = P.H, path = P.space === 'warehouse' ? WAYPOINTS : P.space === 'hospital' ? [[3, 12], [15, 12], [15, 4], [15, 12], [25, 12], [25, 4], [25, 12], [36, 12], [36, 19.5], [36, 12], [27, 12], [27, 19.5], [27, 12], [6, 12], [6, 19.5], [6, 12]] : [[.8, .8], [W - .8, .8], [W - .8, H - .8], [.8, H - .8]];
   let goal = P.tgt, zT = P.zDev;
@@ -64,6 +67,11 @@ function tick() {
   const now = performance.now(); P.samples = P.samples.filter(m => m.t > now - 6000);
   /* beacon heights advertised in the packet (real beacons): adopt them */
   P.samples.slice(-30).forEach(m => { if (m.h > 0) { const a = P.anchors.find(q => q.b === m.b); if (a && Math.abs(a.z - m.h / 10) > 0.05 && !P.linked) a.z = m.h / 10; } });
+  clock += dt;
+  if (!P.linked) {   /* standalone: move carried beacons here (when linked, the dashboard does it and sends the new positions) */
+    Object.keys(TELE).forEach(b => { const m = TELE[b]; if (clock - m.t < 4) BMV.tele(+b, clock, m); });
+    BMV.step(P.anchors.map(a => ({ b: a.b, x: a.x, y: a.y, z: a.z })), clock, P.W, P.H, wallsBetween).forEach(u => { const i = P.anchors.findIndex(a => a.b === u.b); if (i < 0) return; eng.moveAnchor(i, u.x, u.y, u.sd); P.anchors[i].tx = u.x; P.anchors[i].ty = u.y; P.anchors[i].why = u.why; P.anchors[i].whyT = clock; });
+  }
   P.meas = liveMeas(); eng.mode = P.scorer; P.out = eng.step(P.meas, dt);
   P.me = P.out && P.meas.some(Boolean) ? { pos: P.out.pos, zone: zoneOf(P.space, P.out.pos[0], P.out.pos[1], P.W, P.H) } : null;
   asim.step(dt, P.anchors, { model: P.model, loss: P.loss, rssi1m: P.rssi1m, n: P.pn, sigma: P.model === 'add' ? P.sigM : 0.6, sigmaDb: P.sigDb, wallDb: 6, wallBias: 1.8 }, null);
@@ -78,7 +86,7 @@ function alerts() {
 
 /* ---------- link to the laptop: this phone hosts, the laptop joins with the code ---------- */
 const Link = (() => {
-  let relay = null, code = null, buf = [], sendT = 0, lastRx = 0, helloT = 0;
+  let relay = null, code = null, buf = [], sendT = 0, btT = 0, lastRx = 0, helloT = 0;
   const live = () => !!relay && relay.on && performance.now() - lastRx < 6000;
   function start() {
     if (relay) return; code = LSget().code || String(100000 + Math.floor(Math.random() * 900000)); LSset({ code }); $('code').textContent = code.slice(0, 3) + ' ' + code.slice(3);
@@ -103,6 +111,7 @@ const Link = (() => {
     if (P.linked && !live()) { P.linked = false; P.cfg = null; pill('warn', 'Code ' + code); }
     if (!live()) { buf = []; return; }
     if (now - helloT > 3000) { helloT = now; send({ t: 'hello', device: NATIVE ? (NATIVE.deviceName ? NATIVE.deviceName() : 'Android') : (navigator.userAgent.match(/\(([^;)]+)/) || [0, 'browser'])[1], src: P.src }); }
+    if (now - btT >= 500) { btT = now; const b = {}; Object.keys(TELE).forEach(k => { const m = TELE[k]; if (clock - m.t < 3) b[k] = [m.f, m.steps, m.raw, m.peers]; }); if (Object.keys(b).length) send({ t: 'bt', b }); }
     if (now - sendT >= 200) { sendT = now; if (buf.length) { send({ t: 's', s: buf, src: P.src }); buf = []; } if (P.src === 'sim' && !P.calib) send({ t: 'truth', p: P.truth }); }
   }
   return { start, stop, send, queue, pump, request, get code() { return code; } };
@@ -150,10 +159,11 @@ function renderBeacons() {
 function updateRadar() {
   const now = performance.now(), rows = $('blist').children; if (rows.length !== P.anchors.length) renderBeacons();
   P.anchors.forEach((a, i) => { const tr = $('blist').children[i]; if (!tr) return; const m = P.meas[i], n3 = P.samples.filter(q => q.b === a.b && q.t > now - 3000).length;
-    tr.querySelector('.dot').className = 'dot ' + (m ? 'ok' : 'bad'); tr.querySelector('.r').textContent = m ? m.rssi : '–'; tr.querySelector('.d').textContent = m ? fmtDist(m.r3) : '–'; tr.querySelector('.p').textContent = (n3 / 3).toFixed(0); tr.children[1].textContent = a.z.toFixed(1) + ' m'; });
+    const tm = TELE[a.b], mov = tm && clock - tm.t < 3 && tm.moving; tr.querySelector('.dot').className = 'dot ' + (mov ? 'mv' : m ? 'ok' : 'bad'); tr.title = mov ? 'moving' : ''; tr.querySelector('.r').textContent = m ? m.rssi : '–'; tr.querySelector('.d').textContent = m ? fmtDist(m.r3) : '–'; tr.querySelector('.p').textContent = (n3 / 3).toFixed(0); tr.children[1].textContent = a.z.toFixed(1) + ' m'; });
   const o = P.out; $('k-zone').textContent = P.me ? P.me.zone.replace('Ward B · ', '') : '–'; $('k-unc').textContent = o && P.me ? fmtDist(o.ell.a) : '–'; $('k-n').textContent = P.meas.filter(Boolean).length + ' / ' + P.anchors.length;
   const nc = P.anchors.filter(a => a.p1 == null).length;
-  $('n-map').textContent = (P.src === 'sim' ? 'Dashed ring = where you really are (simulation). ' : '') + (P.linked ? 'Laptop linked: room and beacon positions come from the dashboard.' : 'Not linked: default ' + (P.space === 'hospital' ? 'hospital floor' : P.W + ' × ' + P.H + ' m room') + '. Link the laptop to set your own room.') + (P.src === 'ble' && nc ? ' ' + nc + ' beacon' + (nc > 1 ? 's' : '') + ' not calibrated.' : '');
+  const mvn = P.anchors.filter(a => a.why && clock - a.whyT < 6).map(a => 'Beacon ' + a.b + ' moving: ' + a.why + '. ').join('');
+  $('n-map').textContent = mvn + (P.src === 'sim' ? 'Dashed ring = where you really are (simulation). ' : '') + (P.linked ? 'Laptop linked: room and beacon positions come from the dashboard.' : 'Not linked: default ' + (P.space === 'hospital' ? 'hospital floor' : P.W + ' × ' + P.H + ' m room') + '. Link the laptop to set your own room.') + (P.src === 'ble' && nc ? ' ' + nc + ' beacon' + (nc > 1 ? 's' : '') + ' not calibrated.' : '');
   drawMap();
 }
 let calB = null, calD = 1;
@@ -227,6 +237,10 @@ $('sugg').onclick = e => { const b = e.target.closest('button'); if (b) ask(b.te
 $('b-spk').onclick = () => { P.voice = !P.voice; $('b-spk').textContent = P.voice ? 'Voice on' : 'Voice off'; if (!P.voice) try { speechSynthesis.cancel(); } catch (e) { } };
 
 /* ---------- beacon role ---------- */
+function selfStatus(e) {
+  $('s-mov').textContent = e.moving ? 'moving' : 'still'; $('s-steps').textContent = e.steps; $('s-head').textContent = e.head == null ? 'no sensor' : Math.round(e.head) % 360 + '°';
+  const pe = Object.keys(e.peers || {}).filter(k => e.peers[k]); $('s-peers').innerHTML = pe.length ? 'Hears ' + pe.map(k => '<b>B' + k + '</b> ' + e.peers[k] + ' dBm (≈' + fmtDist(rangeFrom(e.peers[k], -62, 2.2)) + ')').join(' · ') : 'Hears no other beacons yet.';
+}
 function buildBeacon() {
   $('bnum').innerHTML = [1, 2, 3, 4, 5, 6].map(i => `<button class="${i === P.bId ? 'on' : ''}" data-i="${i}">${i}</button>`).join(''); $('bpn').textContent = P.bId;
   $('bh').querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.h === P.bH));
