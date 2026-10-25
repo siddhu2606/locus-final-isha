@@ -28,11 +28,12 @@ const RF = {}, RX = { tele: null, pend: 0, last: null };
 /* still, but the radio keeps disagreeing (phone slid on a table, carried without steps): release the hold for 3 s */
 function holdCheck(m) { if (!m || !m.still || !cur || !cur.out || !cur.ls) return m; const off = Math.hypot(cur.ls[0] - cur.out.pos[0], cur.ls[1] - cur.out.pos[1]);
   RX.dis = off > Math.max(1.2, 0.8 * cur.out.ell.a) ? (RX.dis || 0) + 0.1 : Math.max(0, (RX.dis || 0) - 0.05); if (RX.dis > 1.5) RX.free = S.clock + 3; return S.clock < (RX.free || 0) ? null : m; }
-function rxMotion(live, truth) { return holdCheck(rxMotion0(live, truth)); }
+function rxMotion(live, truth) { return rxMotion0(live, truth); }   /* the receiver's own sensors decide: still means still, a beacon moving cannot drag it */
 function rxMotion0(live, truth) {
   if (!live || (S.phoneSrc === 'sim' && truth)) {
     if (!truth) return null; const l = RX.last; RX.last = truth.slice(); if (!l) return { still: true };
-    const dx = truth[0] - l[0], dy = truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return { still: true };
+    const dx = truth[0] - l[0], dy = truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return S.clock - (RX.mvT || -9) < 0.6 ? null : { still: true };   /* a phone's position arrives 5x a second: no change between two updates is not standing still */
+    RX.mvT = S.clock;
     const sc = 1 + 0.05 * BRNG.g(), an = 0.09 * BRNG.g(); return { d: [(dx * Math.cos(an) - dy * Math.sin(an)) * sc, (dx * Math.sin(an) + dy * Math.cos(an)) * sc] };   /* step length +-5 %, heading +-5 deg */
   }
   const m = RX.tele; if (!m || S.clock - m.t > 3) return null;
@@ -50,7 +51,20 @@ function steadyDemo(meas, assumedZ) {
     return { r: Math.sqrt(Math.max(0.0025, rr.r * rr.r - dz * dz)), r3: rr.r, shown: rr.shown, sd: rr.sd, rssi: Math.round(f.x), raw: m ? m.rssi : null, nlos: m ? m.nlos : false, d3: m ? m.d3 : null };
   });
 }
-function resetSense() { RX.last = null; BM.reset(); Object.keys(BSIM).forEach(k => delete BSIM[k]); Object.keys(TELE).forEach(k => delete TELE[k]); }
+/* receiver standing still: a beacon whose distance to it keeps changing is the one moving (works even with an old beacon app) */
+const RB = {};
+function rxWatch(meas) {
+  if (!S.rxStill) { Object.keys(RB).forEach(k => delete RB[k]); return; }
+  S.anchors.forEach((a, j) => { const m = meas[j]; if (!m) return; const B = RB[a.b] || (RB[a.b] = { base: m.r3, n: 0, t0: S.clock });
+    if (S.clock - B.t0 < 2) { B.base += 0.2 * (m.r3 - B.base); return; }
+    if (BM.active(a.b, S.clock)) { B.base = m.r3; B.n = 0; return; }
+    const ch = Math.abs(m.r3 - B.base) > Math.max(0.6, 0.25 * B.base); B.n = ch ? B.n + 0.1 : Math.max(0, B.n - 0.05);
+    if (B.n > 1.2) { BM.flag(a.b, S.clock); B.n = 0; alertLog('info', 'Beacon ' + a.b + ' is moving: its distance to the still receiver changed by ' + Math.abs(m.r3 - B.base).toFixed(1) + ' m. Left out of your position until it settles.'); }
+  });
+}
+/* a beacon that is moving is left out of the receiver's position until it settles */
+const engMeas = meas => meas.map((m, j) => m && BM.active(S.anchors[j].b, S.clock) ? null : m);
+function resetSense() { Object.keys(RB).forEach(k => delete RB[k]); RX.last = null; BM.reset(); Object.keys(BSIM).forEach(k => delete BSIM[k]); Object.keys(TELE).forEach(k => delete TELE[k]); }
 function beaconSense(live) {
   const t = S.clock;
   if (!live || S.phoneSrc === 'sim') { BeaconMover.simulate(BSIM, S.anchors, t, BRNG, S.dead, wallsBetween); S.anchors.forEach(a => { const m = BSIM[a.b].out; BM.tele(a.b, t, m); TELE[a.b] = { ...m, t }; }); }

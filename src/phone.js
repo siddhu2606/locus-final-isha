@@ -16,8 +16,16 @@ let eng = null, rng = rngMake(5), asim = null;
 /* carried beacons: each beacon phone's own telemetry (moving, steps, compass, what it hears) arrives inside its packet */
 const BMV = new BeaconMover(), TELE = {}, RFP = {}, RXM = { tele: null, pend: 0, last: null }; let clock = 0;
 /* this receiver's own motion: still -> hold and average; walking -> steps + compass move the estimate (sensors in the Android app; the simulation uses its true path) */
-function rxMotion() { const m = rxMotion0(); if (!m || !m.still || !P.out || !P.meas.some(Boolean)) return m; const ls = lsFix(P.anchors, P.meas, P.out.pos); if (!ls) return m;
-  const off = Math.hypot(ls[0] - P.out.pos[0], ls[1] - P.out.pos[1]); RXM.dis = off > Math.max(1.2, 0.8 * P.out.ell.a) ? (RXM.dis || 0) + 0.1 : Math.max(0, (RXM.dis || 0) - 0.05); if (RXM.dis > 1.5) RXM.free = clock + 3; return clock < (RXM.free || 0) ? null : m; }
+function rxMotion() { return rxMotion0(); }   /* the receiver's own sensors decide: still means still */
+const RBP = {};
+function rxWatch() {   /* receiver still: a beacon whose distance keeps changing is the one moving */
+  if (!P.rxStill) { Object.keys(RBP).forEach(k => delete RBP[k]); return; }
+  P.anchors.forEach((a, j) => { const m = P.meas[j]; if (!m) return; const B = RBP[a.b] || (RBP[a.b] = { base: m.r3, n: 0, t0: clock });
+    if (clock - B.t0 < 2) { B.base += 0.2 * (m.r3 - B.base); return; }
+    if (BMV.active(a.b, clock)) { B.base = m.r3; B.n = 0; return; }
+    const ch = Math.abs(m.r3 - B.base) > Math.max(0.6, 0.25 * B.base); B.n = ch ? B.n + 0.1 : Math.max(0, B.n - 0.05); if (B.n > 1.2) { BMV.flag(a.b, clock); B.n = 0; }
+  });
+}
 function rxMotion0() {
   if (P.src === 'sim') { const l = RXM.last; RXM.last = P.truth.slice(); if (!l) return { still: true }; const dx = P.truth[0] - l[0], dy = P.truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return { still: true }; const sc = 1 + 0.05 * rng.g(), an = 0.09 * rng.g(); return { d: [(dx * Math.cos(an) - dy * Math.sin(an)) * sc, (dx * Math.sin(an) + dy * Math.cos(an)) * sc] }; }
   const m = RXM.tele; if (!m || clock - m.t > 3) return null;
@@ -90,7 +98,7 @@ function tick() {
     BMV.step(P.anchors.map(a => ({ b: a.b, x: a.x, y: a.y, z: a.z })), clock, P.W, P.H, wallsBetween, rxRef).forEach(u => { const i = P.anchors.findIndex(a => a.b === u.b); if (i < 0) return; eng.moveAnchor(i, u.x, u.y, u.sd); P.anchors[i].tx = u.x; P.anchors[i].ty = u.y; P.anchors[i].why = u.why; P.anchors[i].whyT = clock; });
   }
   const mot = rxMotion(); P.rxStill = !!(mot && mot.still); eng.motion = mot;
-  P.meas = liveMeas(); eng.mode = P.scorer; P.out = eng.step(P.meas, dt);
+  P.meas = liveMeas(); rxWatch(); eng.mode = P.scorer; P.out = eng.step(P.linked ? P.meas : P.meas.map((m, j) => m && BMV.active(P.anchors[j].b, clock) ? null : m), dt);
   P.me = P.out && P.meas.some(Boolean) ? { pos: P.out.pos, zone: zoneOf(P.space, P.out.pos[0], P.out.pos[1], P.W, P.H) } : null;
   asim.step(dt, P.anchors, { model: P.model, loss: P.loss, rssi1m: P.rssi1m, n: P.pn, sigma: P.model === 'add' ? P.sigM : 0.6, sigmaDb: P.sigDb, wallDb: 6, wallBias: 1.8 }, null);
   Link.pump(now);

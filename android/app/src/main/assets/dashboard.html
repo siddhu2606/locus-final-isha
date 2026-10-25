@@ -179,7 +179,7 @@ code{background:var(--aqua-xl);padding:1px 6px;border-radius:6px;font-size:12px}
 <body>
 <header><div class="hrow">
   <div class="logo"><svg width="26" height="26" viewBox="0 0 32 32"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22C3E6"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><path d="M16 2c-5.5 0-10 4.4-10 9.8C6 19 16 30 16 30s10-11 10-18.2C26 6.4 21.500 2 16 2z" fill="url(#lg)"/><circle cx="16" cy="12" r="4" fill="#fff"/></svg>LOCUS <small>ISHA dashboard</small></div>
-  <div class="hl"><span class="pill" id="p-src"><i></i><span>Demo · auto loop</span></span><span class="pill" id="p-mode"><i></i><span>Simulated radio</span></span><a class="pill" href="phone.html">Phone app</a><a class="pill" href="./">Home</a></div>
+  <div class="hl"><span class="pill" id="p-src"><i></i><span>Demo · auto loop</span></span><span class="pill" id="p-mode"><i></i><span>Simulated radio</span></span><a class="pill" href="phone.html">Phone app</a><a class="pill" href="https://github.com/siddhu2606/locus-final-isha/releases/latest/download/locus-isha.apk">Android app</a><a class="pill" href="./">Home</a></div>
 </div>
 <nav class="rail" aria-label="Sections"><a href="#live"><i>01</i>Live 3D</a><a href="#trust"><i>02</i>Trust scorer</a><a href="#alerts"><i>03</i>Off radar + self-check</a><a href="#access"><i>04</i>Access · 3 gates</a><a href="#panel" data-tab="objects"><i>05</i>Objects + ISHA</a><a href="#panel" data-tab="beacons"><i>06</i>Layouts</a><a href="#panel" data-tab="space"><i>07</i>Moving beacons</a><a href="moving.html"><i>08</i>Moving lab</a><a href="knowledge.html"><i>09</i>Knowledge</a></nav></header>
 
@@ -1092,6 +1092,8 @@ class BeaconMover {
     opts = opts || {}; this.stepLen = opts.stepLen || 0.65; this.mapUp = opts.mapUp || 0;   /* compass bearing the map's "up" faces */
     this.T = {}; this.R = {}; this.link = { p1: -62, n: 2.2, pairs: 0 }; this.last = {}; this.wallDb = opts.wallDb || 6;
   }
+  /* something else (the still receiver) saw this beacon move */
+  flag(b, t) { const s = this.st(b); if (!this.active(b, t)) s.seg = { start: null, pdr: 0, heads: [] }; s.lastMove = t; s.found = true; }
   reset() { this.T = {}; this.R = {}; this.last = {}; this.link = { p1: -62, n: 2.2, pairs: 0 }; }
   st(b) { return this.T[b] || (this.T[b] = { moving: false, lastMove: -1e9, steps: null, pend: 0, head: null, heads: [], off: null, seg: null, t: -1e9 }); }
   /* one telemetry report from beacon b: {moving, steps (0-255, wraps), head (deg or null), peers: {otherBeacon: rssi}} at time t (s) */
@@ -1158,6 +1160,9 @@ class BeaconMover {
         if (s.moving && dr) { const f = BeaconMover.solve(p, rs, 1 / (sp * sp), W, H); p = f.p; }
         else { const f = BeaconMover.solve([a.x, a.y], rs, 0.3, W, H), k = s.moving ? 0.3 : s.found ? 0.2 : 0.08; p = [a.x + k * (f.p[0] - a.x), a.y + k * (f.p[1] - a.y)]; sd = Math.max(0.3, f.rms * 0.5); }
         why.push('distances to ' + rs.map(q => q.b === 'R' ? 'the receiver' : 'B' + q.b).join(', '));
+      }
+      else if (rs.length === 1 && rs[0].b === 'R') {   /* only the receiver to measure against: slide along the measured distance from it */
+        const q = rs[0], dx = p[0] - q.x, dy = p[1] - q.y, d = Math.hypot(dx, dy) || 1, tgt = [q.x + dx / d * q.r, q.y + dy / d * q.r]; p = [p[0] + 0.3 * (tgt[0] - p[0]), p[1] + 0.3 * (tgt[1] - p[1])]; sd = 1; why.push('distance to the receiver');
       }
       p = [Math.min(W - 0.05, Math.max(0.05, p[0])), Math.min(H - 0.05, Math.max(0.05, p[1]))];
       if (Math.hypot(p[0] - a.x, p[1] - a.y) > 0.03) { out.push({ b: a.b, x: p[0], y: p[1], sd, why: why.join(' + ') }); this.last[a.b] = { why: why.join(' + '), t }; }
@@ -1512,7 +1517,8 @@ function tick() {
   if (!live) meas.forEach((m, i) => { if (m) S.samples.push({ b: S.anchors[i].b, rssi: m.raw != null ? m.raw : m.rssi, t: now }); });   /* demo packets feed the same health/calibration code */
   S.samples.forEach(m => { if (m.t > now - 400) S.heard[m.b] = Math.max(S.heard[m.b] || 0, m.t); }); S.samples = S.samples.filter(m => m.t > now - 6000);
   const ls = lsFix(S.anchors, meas, eng.ls); if (ls) eng.ls = ls; const kf = eng.kf.update(ls, dt);
-  eng.loc.sigma = engSigma(); const out = eng.loc.step(meas, dt); eng.t += dt;
+  rxWatch(meas);
+  eng.loc.sigma = engSigma(); const out = eng.loc.step(engMeas(meas), dt); eng.t += dt;
   let p3 = null;
   if (out) { const w = out.trust.map((t, j) => out.usable[j] ? t * t : 0); p3 = fix3D(S.anchors, meas, [out.pos[0], out.pos[1], S.zDev], w, { w: S.W, h: S.H, z: S.Z }, 1.3, engSigma());
     /* height changes slowly: smooth it, and only trust it when the geometry can actually observe it */
@@ -1580,7 +1586,7 @@ function updateTrust() {
     const tv = el.querySelector('.tv'); tv.textContent = o ? q.toFixed(2) : '–'; tv.style.color = o ? trustCol(q) : ''; el.querySelector('.mt i').style.width = (o ? q * 100 : 0).toFixed(1) + '%';
     el.querySelector('.sh').textContent = Math.round(sh[i] * 100) + '%'; el.querySelector('.rm').textContent = o && m ? o.tRule[i].toFixed(2) + ' · ' + (o.tML ? o.tML[i].toFixed(2) : '–') : '–';
     let rg = 'no packet'; if (m) { if (c.truth) { const d = Math.hypot(c.truth[0] - a.x, c.truth[1] - a.y, a.z - S.zDev), k = wallsBetween(a.x, a.y, c.truth[0], c.truth[1]); rg = m.r3.toFixed(1) + ' m · true ' + d.toFixed(1) + (k ? ' · ' + k + ' wall' + (k > 1 ? 's' : '') : ''); } else rg = m.r3.toFixed(1) + ' m · ' + m.rssi + ' dBm'; }
-    el.querySelector('.rg').textContent = rg; el.querySelector('.why').textContent = why || (o ? 'Consistent with motion model' : '–');
+    el.querySelector('.rg').textContent = rg; el.querySelector('.why').textContent = BM.active(a.b, S.clock) ? 'Moving: left out of your position until it settles' : why || (o ? 'Consistent with motion model' : '–');
     const bar = bars[i], p = sh[i] * 100; bar.style.width = p.toFixed(2) + '%'; bar.style.borderRightWidth = p > 0.4 ? '2px' : '0'; bar.textContent = p > 9 ? 'B' + a.b + ' ' + Math.round(p) + '%' : ''; bar.title = 'Beacon ' + a.b + ': ' + Math.round(p) + '% of the fix';
   });
   if (o) {
@@ -1834,11 +1840,12 @@ const RF = {}, RX = { tele: null, pend: 0, last: null };
 /* still, but the radio keeps disagreeing (phone slid on a table, carried without steps): release the hold for 3 s */
 function holdCheck(m) { if (!m || !m.still || !cur || !cur.out || !cur.ls) return m; const off = Math.hypot(cur.ls[0] - cur.out.pos[0], cur.ls[1] - cur.out.pos[1]);
   RX.dis = off > Math.max(1.2, 0.8 * cur.out.ell.a) ? (RX.dis || 0) + 0.1 : Math.max(0, (RX.dis || 0) - 0.05); if (RX.dis > 1.5) RX.free = S.clock + 3; return S.clock < (RX.free || 0) ? null : m; }
-function rxMotion(live, truth) { return holdCheck(rxMotion0(live, truth)); }
+function rxMotion(live, truth) { return rxMotion0(live, truth); }   /* the receiver's own sensors decide: still means still, a beacon moving cannot drag it */
 function rxMotion0(live, truth) {
   if (!live || (S.phoneSrc === 'sim' && truth)) {
     if (!truth) return null; const l = RX.last; RX.last = truth.slice(); if (!l) return { still: true };
-    const dx = truth[0] - l[0], dy = truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return { still: true };
+    const dx = truth[0] - l[0], dy = truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return S.clock - (RX.mvT || -9) < 0.6 ? null : { still: true };   /* a phone's position arrives 5x a second: no change between two updates is not standing still */
+    RX.mvT = S.clock;
     const sc = 1 + 0.05 * BRNG.g(), an = 0.09 * BRNG.g(); return { d: [(dx * Math.cos(an) - dy * Math.sin(an)) * sc, (dx * Math.sin(an) + dy * Math.cos(an)) * sc] };   /* step length +-5 %, heading +-5 deg */
   }
   const m = RX.tele; if (!m || S.clock - m.t > 3) return null;
@@ -1856,7 +1863,20 @@ function steadyDemo(meas, assumedZ) {
     return { r: Math.sqrt(Math.max(0.0025, rr.r * rr.r - dz * dz)), r3: rr.r, shown: rr.shown, sd: rr.sd, rssi: Math.round(f.x), raw: m ? m.rssi : null, nlos: m ? m.nlos : false, d3: m ? m.d3 : null };
   });
 }
-function resetSense() { RX.last = null; BM.reset(); Object.keys(BSIM).forEach(k => delete BSIM[k]); Object.keys(TELE).forEach(k => delete TELE[k]); }
+/* receiver standing still: a beacon whose distance to it keeps changing is the one moving (works even with an old beacon app) */
+const RB = {};
+function rxWatch(meas) {
+  if (!S.rxStill) { Object.keys(RB).forEach(k => delete RB[k]); return; }
+  S.anchors.forEach((a, j) => { const m = meas[j]; if (!m) return; const B = RB[a.b] || (RB[a.b] = { base: m.r3, n: 0, t0: S.clock });
+    if (S.clock - B.t0 < 2) { B.base += 0.2 * (m.r3 - B.base); return; }
+    if (BM.active(a.b, S.clock)) { B.base = m.r3; B.n = 0; return; }
+    const ch = Math.abs(m.r3 - B.base) > Math.max(0.6, 0.25 * B.base); B.n = ch ? B.n + 0.1 : Math.max(0, B.n - 0.05);
+    if (B.n > 1.2) { BM.flag(a.b, S.clock); B.n = 0; alertLog('info', 'Beacon ' + a.b + ' is moving: its distance to the still receiver changed by ' + Math.abs(m.r3 - B.base).toFixed(1) + ' m. Left out of your position until it settles.'); }
+  });
+}
+/* a beacon that is moving is left out of the receiver's position until it settles */
+const engMeas = meas => meas.map((m, j) => m && BM.active(S.anchors[j].b, S.clock) ? null : m);
+function resetSense() { Object.keys(RB).forEach(k => delete RB[k]); RX.last = null; BM.reset(); Object.keys(BSIM).forEach(k => delete BSIM[k]); Object.keys(TELE).forEach(k => delete TELE[k]); }
 function beaconSense(live) {
   const t = S.clock;
   if (!live || S.phoneSrc === 'sim') { BeaconMover.simulate(BSIM, S.anchors, t, BRNG, S.dead, wallsBetween); S.anchors.forEach(a => { const m = BSIM[a.b].out; BM.tele(a.b, t, m); TELE[a.b] = { ...m, t }; }); }

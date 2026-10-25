@@ -12,6 +12,8 @@ class BeaconMover {
     opts = opts || {}; this.stepLen = opts.stepLen || 0.65; this.mapUp = opts.mapUp || 0;   /* compass bearing the map's "up" faces */
     this.T = {}; this.R = {}; this.link = { p1: -62, n: 2.2, pairs: 0 }; this.last = {}; this.wallDb = opts.wallDb || 6;
   }
+  /* something else (the still receiver) saw this beacon move */
+  flag(b, t) { const s = this.st(b); if (!this.active(b, t)) s.seg = { start: null, pdr: 0, heads: [] }; s.lastMove = t; s.found = true; }
   reset() { this.T = {}; this.R = {}; this.last = {}; this.link = { p1: -62, n: 2.2, pairs: 0 }; }
   st(b) { return this.T[b] || (this.T[b] = { moving: false, lastMove: -1e9, steps: null, pend: 0, head: null, heads: [], off: null, seg: null, t: -1e9 }); }
   /* one telemetry report from beacon b: {moving, steps (0-255, wraps), head (deg or null), peers: {otherBeacon: rssi}} at time t (s) */
@@ -78,6 +80,9 @@ class BeaconMover {
         if (s.moving && dr) { const f = BeaconMover.solve(p, rs, 1 / (sp * sp), W, H); p = f.p; }
         else { const f = BeaconMover.solve([a.x, a.y], rs, 0.3, W, H), k = s.moving ? 0.3 : s.found ? 0.2 : 0.08; p = [a.x + k * (f.p[0] - a.x), a.y + k * (f.p[1] - a.y)]; sd = Math.max(0.3, f.rms * 0.5); }
         why.push('distances to ' + rs.map(q => q.b === 'R' ? 'the receiver' : 'B' + q.b).join(', '));
+      }
+      else if (rs.length === 1 && rs[0].b === 'R') {   /* only the receiver to measure against: slide along the measured distance from it */
+        const q = rs[0], dx = p[0] - q.x, dy = p[1] - q.y, d = Math.hypot(dx, dy) || 1, tgt = [q.x + dx / d * q.r, q.y + dy / d * q.r]; p = [p[0] + 0.3 * (tgt[0] - p[0]), p[1] + 0.3 * (tgt[1] - p[1])]; sd = 1; why.push('distance to the receiver');
       }
       p = [Math.min(W - 0.05, Math.max(0.05, p[0])), Math.min(H - 0.05, Math.max(0.05, p[1]))];
       if (Math.hypot(p[0] - a.x, p[1] - a.y) > 0.03) { out.push({ b: a.b, x: p[0], y: p[1], sd, why: why.join(' + ') }); this.last[a.b] = { why: why.join(' + '), t }; }

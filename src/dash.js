@@ -262,7 +262,8 @@ function tick() {
   if (!live) meas.forEach((m, i) => { if (m) S.samples.push({ b: S.anchors[i].b, rssi: m.raw != null ? m.raw : m.rssi, t: now }); });   /* demo packets feed the same health/calibration code */
   S.samples.forEach(m => { if (m.t > now - 400) S.heard[m.b] = Math.max(S.heard[m.b] || 0, m.t); }); S.samples = S.samples.filter(m => m.t > now - 6000);
   const ls = lsFix(S.anchors, meas, eng.ls); if (ls) eng.ls = ls; const kf = eng.kf.update(ls, dt);
-  eng.loc.sigma = engSigma(); const out = eng.loc.step(meas, dt); eng.t += dt;
+  rxWatch(meas);
+  eng.loc.sigma = engSigma(); const out = eng.loc.step(engMeas(meas), dt); eng.t += dt;
   let p3 = null;
   if (out) { const w = out.trust.map((t, j) => out.usable[j] ? t * t : 0); p3 = fix3D(S.anchors, meas, [out.pos[0], out.pos[1], S.zDev], w, { w: S.W, h: S.H, z: S.Z }, 1.3, engSigma());
     /* height changes slowly: smooth it, and only trust it when the geometry can actually observe it */
@@ -330,7 +331,7 @@ function updateTrust() {
     const tv = el.querySelector('.tv'); tv.textContent = o ? q.toFixed(2) : '–'; tv.style.color = o ? trustCol(q) : ''; el.querySelector('.mt i').style.width = (o ? q * 100 : 0).toFixed(1) + '%';
     el.querySelector('.sh').textContent = Math.round(sh[i] * 100) + '%'; el.querySelector('.rm').textContent = o && m ? o.tRule[i].toFixed(2) + ' · ' + (o.tML ? o.tML[i].toFixed(2) : '–') : '–';
     let rg = 'no packet'; if (m) { if (c.truth) { const d = Math.hypot(c.truth[0] - a.x, c.truth[1] - a.y, a.z - S.zDev), k = wallsBetween(a.x, a.y, c.truth[0], c.truth[1]); rg = m.r3.toFixed(1) + ' m · true ' + d.toFixed(1) + (k ? ' · ' + k + ' wall' + (k > 1 ? 's' : '') : ''); } else rg = m.r3.toFixed(1) + ' m · ' + m.rssi + ' dBm'; }
-    el.querySelector('.rg').textContent = rg; el.querySelector('.why').textContent = why || (o ? 'Consistent with motion model' : '–');
+    el.querySelector('.rg').textContent = rg; el.querySelector('.why').textContent = BM.active(a.b, S.clock) ? 'Moving: left out of your position until it settles' : why || (o ? 'Consistent with motion model' : '–');
     const bar = bars[i], p = sh[i] * 100; bar.style.width = p.toFixed(2) + '%'; bar.style.borderRightWidth = p > 0.4 ? '2px' : '0'; bar.textContent = p > 9 ? 'B' + a.b + ' ' + Math.round(p) + '%' : ''; bar.title = 'Beacon ' + a.b + ': ' + Math.round(p) + '% of the fix';
   });
   if (o) {
