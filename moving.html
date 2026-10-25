@@ -278,7 +278,7 @@ class Locus {
     for (let i = 0; i < N; i++) {
       const ox = this.px[i], oy = this.py[i];
       let nx, ny;
-      if (mot && mot.still) { this.vx[i] = 0; this.vy[i] = 0; nx = ox + r.g() * 0.004; ny = oy + r.g() * 0.004; }
+      if (mot && mot.still) { this.vx[i] = 0; this.vy[i] = 0; nx = ox + r.g() * 0.015; ny = oy + r.g() * 0.015; }
       else if (mot && mot.d) { const j = 0.03 + 0.2 * md; nx = ox + mot.d[0] + r.g() * j; ny = oy + mot.d[1] + r.g() * j; this.vx[i] = mot.d[0] / dt; this.vy[i] = mot.d[1] / dt; }
       else {
       this.vx[i] = this.vx[i] * 0.96 + r.g() * 0.28; this.vy[i] = this.vy[i] * 0.96 + r.g() * 0.28;

@@ -30,16 +30,33 @@ class BeaconMover {
   range(i, j, t, dz, walls) { const r = this.pair(i, j, t); if (r == null) return null; const d3 = rangeFrom(r + this.wallDb * (walls || 0), this.link.p1, this.link.n, 60); return Math.sqrt(Math.max(0.01, d3 * d3 - dz * dz)); }
   /* anchors: [{b, x, y, z}] with their current (believed) positions; wallsBetween(x1, y1, x2, y2) from the floor plan (optional).
      Returns [{b, x, y, sd, why}] for every beacon whose position changed. */
-  step(anchors, t, W, H, wallsBetween) {
+  /* extra(b): more fixed references for beacon b, e.g. the receiver standing still at a known spot with its range to b: [{x, y, r, b}] */
+  step(anchors, t, W, H, wallsBetween, extra) {
     const wb = wallsBetween || (() => 0), still = anchors.filter(a => !this.active(a.b, t)), out = [], dt = this.lastT == null ? 0.1 : Math.min(1, t - this.lastT); this.lastT = t;
-    /* fit the link model from still pairs at known distances (wall loss removed first) */
-    const pts = []; for (let i = 0; i < still.length; i++) for (let j = i + 1; j < still.length; j++) { const A = still[i], B = still[j], r = this.pair(A.b, B.b, t); if (r != null) pts.push({ d: Math.max(0.2, Math.hypot(A.x - B.x, A.y - B.y, A.z - B.z)), rssi: r + this.wallDb * wb(A.x, A.y, B.x, B.y) }); }
-    if (pts.length) {
-      const ds = pts.map(q => q.d), wide = Math.max(...ds) / Math.min(...ds) >= 2.5, f = fitCal(wide ? pts : pts.map(q => ({ d: q.d, rssi: q.rssi })), 2.2), n = wide ? Math.min(4, Math.max(1.6, f.n)) : 2.2, p1 = wide ? f.p1 : pts.reduce((q, r) => q + r.rssi + 22 * Math.log10(r.d), 0) / pts.length;
-      const k = this.link.pairs ? 0.1 : 1; this.link = { p1: this.link.p1 + k * (p1 - this.link.p1), n: this.link.n + k * (n - this.link.n), pairs: pts.length };
+    /* pairs between still beacons at known distances (wall loss removed first) */
+    const pts = []; for (let i = 0; i < still.length; i++) for (let j = i + 1; j < still.length; j++) { const A = still[i], B = still[j], r = this.pair(A.b, B.b, t); if (r != null) pts.push({ a: A.b, b: B.b, d: Math.max(0.2, Math.hypot(A.x - B.x, A.y - B.y, A.z - B.z)), rssi: r + this.wallDb * wb(A.x, A.y, B.x, B.y) }); }
+    /* consistency check: a beacon whose readings to ALL the others disagree with where we think it is has probably been moved
+       (without its motion sensor noticing). It is left out of the calibration and becomes the suspect. */
+    this.suspect = null;
+    if (pts.length >= 3 && still.length >= 3) {
+      const bad = {}; still.forEach(o => { const mine = pts.filter(q => q.a === o.b || q.b === o.b); if (mine.length >= 2) bad[o.b] = mine.reduce((s, q) => s + Math.abs(q.rssi - (this.link.p1 - 10 * this.link.n * Math.log10(q.d))), 0) / mine.length; });
+      const ks = Object.keys(bad).sort((x, y) => bad[y] - bad[x]); if (ks.length >= 3) { const top = bad[ks[0]], rest = ks.slice(1).map(k => bad[k]).sort((x, y) => x - y), med = rest[rest.length >> 1]; if (top > 3.5 && top > 2 * med + 1) this.suspect = +ks[0]; }
+    }
+    const fitPts = this.suspect == null ? pts : pts.filter(q => q.a !== this.suspect && q.b !== this.suspect);
+    if (fitPts.length) {
+      const ds = fitPts.map(q => q.d), wide = Math.max(...ds) / Math.min(...ds) >= 2.5, f = fitCal(fitPts, 2.2), n = wide ? Math.min(4, Math.max(1.6, f.n)) : 2.2, p1 = wide ? f.p1 : fitPts.reduce((q, r) => q + r.rssi + 22 * Math.log10(r.d), 0) / fitPts.length;
+      const k = this.link.pairs ? 0.1 : 1; this.link = { p1: this.link.p1 + k * (p1 - this.link.p1), n: this.link.n + k * (n - this.link.n), pairs: fitPts.length };
     }
     anchors.forEach(a => {
-      const s = this.T[a.b]; if (!s || !this.active(a.b, t)) { if (s && s.seg && s.seg.start) this._endSeg(a, s); return; }
+      const s = this.st(a.b);
+      if (!this.active(a.b, t)) {
+        s.found = false; if (s.seg && s.seg.start) this._endSeg(a, s);
+        /* moved without its motion sensor noticing (slid, carried smoothly, old app): its distances keep saying it is elsewhere -> treat it as moving */
+        const refs = still.filter(o => o.b !== a.b && o.b !== this.suspect).map(o => ({ x: o.x, y: o.y, b: o.b, r: this.range(a.b, o.b, t, a.z - o.z, wb(a.x, a.y, o.x, o.y)) })).filter(q => q.r != null).concat(extra ? extra(a.b) : []);
+        if (refs.length >= 2 && (this.suspect === a.b || refs.length >= 3)) { const f = BeaconMover.solve([a.x, a.y], refs, 0.02, W, H), mr = refs.reduce((q, r) => q + r.r, 0) / refs.length, off = Math.hypot(f.p[0] - a.x, f.p[1] - a.y);
+          s.drift = off > Math.max(1.0, (this.suspect === a.b ? 0.15 : 0.3) * mr) ? (s.drift || 0) + dt : Math.max(0, (s.drift || 0) - dt); if (s.drift > 2.5) { s.drift = 0; s.lastMove = t; s.found = true; } }
+        return;
+      }
       if (s.seg && !s.seg.start) s.seg.start = [a.x, a.y];
       let p = [a.x, a.y], why = [];
       const dr = s.head != null;   /* this phone has step + compass data */
@@ -47,7 +64,7 @@ class BeaconMover {
         const d = s.pend * this.stepLen, br = (s.head - this.mapUp) * Math.PI / 180; p = [p[0] + d * Math.sin(br), p[1] - d * Math.cos(br)]; if (s.seg) s.seg.pdr += d; why.push(s.pend + ' step' + (s.pend > 1 ? 's' : ''));
       }
       s.pend = 0;
-      const all = still.filter(o => o.b !== a.b).map(o => ({ x: o.x, y: o.y, b: o.b, r: this.range(a.b, o.b, t, a.z - o.z, wb(p[0], p[1], o.x, o.y)) })).filter(q => q.r != null);
+      const all = still.filter(o => o.b !== a.b && o.b !== this.suspect).map(o => ({ x: o.x, y: o.y, b: o.b, r: this.range(a.b, o.b, t, a.z - o.z, wb(p[0], p[1], o.x, o.y)) })).filter(q => q.r != null).concat(extra ? extra(a.b) : []);
       /* gate: a distance far from what the steps predict is a bad reading (body, wall, reflection), not a jump */
       const gate = q => { const e = Math.hypot(p[0] - q.x, p[1] - q.y); return Math.abs(q.r - e) < Math.max(1.0, 0.35 * e); };
       let rs = dr ? all.filter(gate) : all;
@@ -59,8 +76,8 @@ class BeaconMover {
       const sp = 0.25 + 0.08 * (s.seg ? s.seg.pdr : 0); let sd = sp;
       if (rs.length >= 2 || (rs.length === 1 && why.length)) {
         if (s.moving && dr) { const f = BeaconMover.solve(p, rs, 1 / (sp * sp), W, H); p = f.p; }
-        else { const f = BeaconMover.solve([a.x, a.y], rs, 0.3, W, H), k = s.moving ? 0.3 : 0.08; p = [a.x + k * (f.p[0] - a.x), a.y + k * (f.p[1] - a.y)]; sd = Math.max(0.3, f.rms * 0.5); }
-        why.push('distances to ' + rs.map(q => 'B' + q.b).join(', '));
+        else { const f = BeaconMover.solve([a.x, a.y], rs, 0.3, W, H), k = s.moving ? 0.3 : s.found ? 0.2 : 0.08; p = [a.x + k * (f.p[0] - a.x), a.y + k * (f.p[1] - a.y)]; sd = Math.max(0.3, f.rms * 0.5); }
+        why.push('distances to ' + rs.map(q => q.b === 'R' ? 'the receiver' : 'B' + q.b).join(', '));
       }
       p = [Math.min(W - 0.05, Math.max(0.05, p[0])), Math.min(H - 0.05, Math.max(0.05, p[1]))];
       if (Math.hypot(p[0] - a.x, p[1] - a.y) > 0.03) { out.push({ b: a.b, x: p[0], y: p[1], sd, why: why.join(' + ') }); this.last[a.b] = { why: why.join(' + '), t }; }

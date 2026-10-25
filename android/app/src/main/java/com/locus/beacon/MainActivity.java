@@ -262,7 +262,7 @@ public class MainActivity extends Activity {
                 float m = (float) Math.sqrt(e.values[0] * e.values[0] + e.values[1] * e.values[1] + e.values[2] * e.values[2]);
                 gLow += 0.05f * (m - gLow); float dyn = m - gLow;
                 accBuf[accN % accBuf.length] = dyn; accN++;
-                if (accN >= accBuf.length) { float s = 0; for (float v : accBuf) s += v * v; if (Math.sqrt(s / accBuf.length) > 0.6) { moving = true; moveUntil = now + 1500; } }
+                if (accN >= accBuf.length) { float s = 0; for (float v : accBuf) s += v * v; if (Math.sqrt(s / accBuf.length) > 0.4) { moving = true; moveUntil = now + 2000; }   /* gentle carrying counts too */ }
                 if (!hwSteps && prevDyn > 1.3f && prevDyn >= prevPrevDyn && prevDyn > dyn && now - lastPeak > 300) { steps++; lastPeak = now; moving = true; moveUntil = now + 1500; }
                 prevPrevDyn = prevDyn; prevDyn = dyn;
             } else if (ty == Sensor.TYPE_STEP_DETECTOR) { steps++; moving = true; moveUntil = now + 1500; }

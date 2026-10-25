@@ -16,7 +16,9 @@ let eng = null, rng = rngMake(5), asim = null;
 /* carried beacons: each beacon phone's own telemetry (moving, steps, compass, what it hears) arrives inside its packet */
 const BMV = new BeaconMover(), TELE = {}, RFP = {}, RXM = { tele: null, pend: 0, last: null }; let clock = 0;
 /* this receiver's own motion: still -> hold and average; walking -> steps + compass move the estimate (sensors in the Android app; the simulation uses its true path) */
-function rxMotion() {
+function rxMotion() { const m = rxMotion0(); if (!m || !m.still || !P.out || !P.meas.some(Boolean)) return m; const ls = lsFix(P.anchors, P.meas, P.out.pos); if (!ls) return m;
+  const off = Math.hypot(ls[0] - P.out.pos[0], ls[1] - P.out.pos[1]); RXM.dis = off > Math.max(1.2, 0.8 * P.out.ell.a) ? (RXM.dis || 0) + 0.1 : Math.max(0, (RXM.dis || 0) - 0.05); if (RXM.dis > 1.5) RXM.free = clock + 3; return clock < (RXM.free || 0) ? null : m; }
+function rxMotion0() {
   if (P.src === 'sim') { const l = RXM.last; RXM.last = P.truth.slice(); if (!l) return { still: true }; const dx = P.truth[0] - l[0], dy = P.truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return { still: true }; const sc = 1 + 0.05 * rng.g(), an = 0.09 * rng.g(); return { d: [(dx * Math.cos(an) - dy * Math.sin(an)) * sc, (dx * Math.sin(an) + dy * Math.cos(an)) * sc] }; }
   const m = RXM.tele; if (!m || clock - m.t > 3) return null;
   if (!m.moving) { RXM.pend = 0; return { still: true }; }
@@ -84,7 +86,8 @@ function tick() {
   clock += dt;
   if (!P.linked) {   /* standalone: move carried beacons here (when linked, the dashboard does it and sends the new positions) */
     Object.keys(TELE).forEach(b => { const m = TELE[b]; if (clock - m.t < 4) BMV.tele(+b, clock, m); });
-    BMV.step(P.anchors.map(a => ({ b: a.b, x: a.x, y: a.y, z: a.z })), clock, P.W, P.H, wallsBetween).forEach(u => { const i = P.anchors.findIndex(a => a.b === u.b); if (i < 0) return; eng.moveAnchor(i, u.x, u.y, u.sd); P.anchors[i].tx = u.x; P.anchors[i].ty = u.y; P.anchors[i].why = u.why; P.anchors[i].whyT = clock; });
+    const rxRef = P.rxStill && P.out && P.out.ell.a < 1.5 && P.meas.length === P.anchors.length ? b => { const j = P.anchors.findIndex(a => a.b === b), m = j >= 0 && P.meas[j]; return m ? [{ x: P.out.pos[0], y: P.out.pos[1], r: m.r, b: 'R' }] : []; } : null;
+    BMV.step(P.anchors.map(a => ({ b: a.b, x: a.x, y: a.y, z: a.z })), clock, P.W, P.H, wallsBetween, rxRef).forEach(u => { const i = P.anchors.findIndex(a => a.b === u.b); if (i < 0) return; eng.moveAnchor(i, u.x, u.y, u.sd); P.anchors[i].tx = u.x; P.anchors[i].ty = u.y; P.anchors[i].why = u.why; P.anchors[i].whyT = clock; });
   }
   const mot = rxMotion(); P.rxStill = !!(mot && mot.still); eng.motion = mot;
   P.meas = liveMeas(); eng.mode = P.scorer; P.out = eng.step(P.meas, dt);
@@ -105,7 +108,7 @@ const Link = (() => {
   const live = () => !!relay && relay.on && performance.now() - lastRx < 6000;
   function start() {
     if (relay) return; code = LSget().code || String(100000 + Math.floor(Math.random() * 900000)); LSset({ code }); $('code').textContent = code.slice(0, 3) + ' ' + code.slice(3);
-    relay = new Relay(code, 'phone', onData, s => { if (s === 'online') { if (!P.linked) pill('warn', 'Code ' + code); } else if (s === 'connecting' && !relay.on) pill('warn', 'Connecting…'); else if (s === 'offline') pill('warn', 'No internet'); });
+    relay = new MultiLink(code, 'phone', onData, s => { if (s === 'online') { if (!P.linked) pill('warn', 'Code ' + code); } else if (s === 'connecting' && !relay.on) pill('warn', 'Connecting…'); else if (s === 'offline') pill('warn', 'No internet'); });
     relay.connect();
   }
   function stop() { if (relay) relay.close(); relay = null; P.linked = false; }
@@ -160,7 +163,7 @@ function drawMap() {
   if (ROOMS.length > 1) ROOMS.forEach(rm => { const [a, b, c, e] = rm.r; if (c <= a) return; g.fillStyle = rm.id === 'corr' ? 'rgba(34,195,230,.06)' : 'rgba(16,185,129,.04)'; g.fillRect(X(a), Y(b), (c - a) * s, (e - b) * s); g.fillStyle = '#9AB3BC'; g.font = '600 10px system-ui'; g.textAlign = 'center'; g.fillText(rm.name, X((a + c) / 2), Y((b + e) / 2) + 3); });
   g.strokeStyle = '#0E9DBE'; g.lineWidth = 2; WALLS.forEach(q => { g.beginPath(); g.moveTo(X(q[0]), Y(q[1])); g.lineTo(X(q[2]), Y(q[3])); g.stroke(); });
   const o = P.out, A = assets();
-  A.forEach(a => { if (!a.pos) return; const ty = ASSET_TYPES[a.type], x = X(a.pos[0]), y = Y(a.pos[1]), f = P.focus === a.id; if (f && P.me) { g.strokeStyle = '#F5A524'; g.lineWidth = 2.5; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(X(P.me.pos[0]), Y(P.me.pos[1])); g.lineTo(x, y); g.stroke(); g.setLineDash([]); }
+  A.forEach(a => { if (!a.pos || P.focus !== a.id) return; const ty = ASSET_TYPES[a.type], x = X(a.pos[0]), y = Y(a.pos[1]), f = P.focus === a.id; if (f && P.me) { g.strokeStyle = '#F5A524'; g.lineWidth = 2.5; g.setLineDash([5, 4]); g.beginPath(); g.moveTo(X(P.me.pos[0]), Y(P.me.pos[1])); g.lineTo(x, y); g.stroke(); g.setLineDash([]); }
     if (f) { g.beginPath(); g.arc(x, y, 15, 0, 7); g.strokeStyle = '#F5A524'; g.lineWidth = 3; g.stroke(); } g.globalAlpha = a.online ? 1 : .45; g.fillStyle = ty.col; g.beginPath(); g.roundRect ? g.roundRect(x - 10, y - 7, 20, 14, 4) : g.rect(x - 10, y - 7, 20, 14); g.fill(); g.fillStyle = '#fff'; g.font = '700 8px system-ui'; g.textAlign = 'center'; g.fillText(ty.short, x, y + 3); g.globalAlpha = 1; });
   if (o && P.me) { const ct = Math.cos(o.ell.th), st = Math.sin(o.ell.th); g.beginPath(); for (let k = 0; k <= 36; k++) { const t = k / 36 * 6.283, ex = o.ell.a * Math.cos(t), ey = o.ell.b * Math.sin(t); const px = X(o.pos[0] + ex * ct - ey * st), py = Y(o.pos[1] + ex * st + ey * ct); k ? g.lineTo(px, py) : g.moveTo(px, py); } g.fillStyle = 'rgba(16,185,129,.12)'; g.fill(); g.strokeStyle = 'rgba(16,185,129,.7)'; g.lineWidth = 1.5; g.stroke(); }
   P.anchors.forEach((a, i) => { const m = P.meas[i], x = X(a.x), y = Y(a.y); if (m && P.me) { g.strokeStyle = 'rgba(14,157,190,.25)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(X(P.me.pos[0]), Y(P.me.pos[1])); g.stroke(); }

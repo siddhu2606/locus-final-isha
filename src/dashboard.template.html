@@ -190,6 +190,7 @@ code{background:var(--aqua-xl);padding:1px 6px;border-radius:6px;font-size:12px}
     <div class="vbar">
       <div class="seg" id="views"><button data-v="top" aria-pressed="true">Top</button><button data-v="iso" aria-pressed="false">3D</button><button data-v="side" aria-pressed="false">Side</button></div>
       <div class="tiltbox">Tilt <input type="range" id="tilt" min="8" max="90" value="90" aria-label="Camera tilt"><span id="tiltv">90°</span></div>
+      <div class="tiltbox">Layout <select id="q-lay" aria-label="Floor plan" style="border:0;background:none;font:inherit;font-weight:700;color:var(--ink);max-width:150px"></select></div>
       <div class="tiltbox">Turn <input type="range" id="yaw" min="-180" max="180" value="0" aria-label="Camera rotation"><span id="yawv">0°</span></div>
     </div>
     <div class="legend">
@@ -198,8 +199,8 @@ code{background:var(--aqua-xl);padding:1px 6px;border-radius:6px;font-size:12px}
       <label><i style="background:#F5A524"></i><input type="checkbox" id="L-ls" hidden>Plain trilateration</label>
       <label><i style="background:#8B5CF6"></i><input type="checkbox" id="L-kf" hidden>Kalman</label>
       <label><i style="background:#22C3E6"></i><input type="checkbox" id="L-pt" checked hidden>Particles</label>
-      <label><i style="background:#2A78D6;border-radius:3px"></i><input type="checkbox" id="L-obj" checked hidden>Objects</label>
-      <label><i style="background:#9fe3c9"></i><input type="checkbox" id="L-links" checked hidden>Self-check links</label>
+      <label><i style="background:#2A78D6;border-radius:3px"></i><input type="checkbox" id="L-obj" hidden>All objects</label>
+      <label><i style="background:#9fe3c9"></i><input type="checkbox" id="L-links" hidden>Self-check links</label>
     </div>
     <div class="joy" id="joy"><b id="joyk"></b></div>
     <div class="hud">
@@ -290,6 +291,13 @@ position fix      weight_i = trust_i²       share_i = weight_i / Σ weight</pre
           <div class="note">No ground truth with real radio: <b>tap the floor where you really stand</b> to log an error sample. A phone in Simulation mode sends its true position, so the error is live.</div>
         </div>
       </div>
+      <div class="card" id="layouts">
+        <h4>Saved layouts &amp; blueprints</h4>
+        <div class="bps" id="bp-list"></div>
+        <div class="row"><input type="text" id="l-name" placeholder="Name" maxlength="40" style="flex:1;min-width:120px;height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-weight:600"><button class="btn pri sm" id="l-save">Save</button><button class="btn sm" id="l-del">Delete</button></div>
+        <div class="row"><button class="btn sm" id="l-exp">Export file</button><button class="btn sm" id="l-imp">Import file</button><button class="btn sm" id="l-reset">Restore examples</button><button class="btn sm" id="l-edit">Edit floor plan</button><input type="file" id="l-file" accept=".json,application/json" hidden></div>
+        <div class="note" id="l-note">Tap a blueprint to open it. Hospital and Warehouse are built in; the other three are examples you can edit (walls, zones, beacons) and save over, or save under a new name.</div>
+      </div>
       <div class="card">
         <h4>Room and beacons</h4>
         <div class="row"><label class="fld">Width m<input type="number" id="i-W" min="2" max="40" step="0.5" value="5"></label><label class="fld">Depth m<input type="number" id="i-H" min="2" max="24" step="0.5" value="4"></label></div>
@@ -300,13 +308,6 @@ position fix      weight_i = trust_i²       share_i = weight_i / Σ weight</pre
         <div class="row"><button class="btn pri sm" id="b-gcal">Guided calibration</button><span class="note" id="n-cal">One beacon at a time. Two distances (e.g. 10 cm and 1 m) also fit the path-loss exponent.</span></div>
         <div class="gcal" id="gcal"><b id="g-title"></b><div class="note" id="g-text"></div><div class="prog"><i id="g-bar"></i></div><div class="row"><button class="btn pri sm" id="g-go">Measure (3 s)</button><button class="btn sm" id="g-skip">Skip</button><button class="btn sm" id="g-stop">Stop</button></div></div>
         <div class="note" id="n-why">Beacon # is the ID you pick in the app on each beacon phone. Untick one to test losing a beacon.</div>
-      </div>
-      <div class="card" id="layouts">
-        <h4>Saved layouts &amp; blueprints</h4>
-        <div class="bps" id="bp-list"></div>
-        <div class="row"><input type="text" id="l-name" placeholder="Name" maxlength="40" style="flex:1;min-width:120px;height:38px;border:1.5px solid var(--aqua-l);border-radius:12px;padding:0 10px;font-weight:600"><button class="btn pri sm" id="l-save">Save</button><button class="btn sm" id="l-del">Delete</button></div>
-        <div class="row"><button class="btn sm" id="l-exp">Export file</button><button class="btn sm" id="l-imp">Import file</button><button class="btn sm" id="l-reset">Restore examples</button><input type="file" id="l-file" accept=".json,application/json" hidden></div>
-        <div class="note" id="l-note">Tap a blueprint to open it. Hospital and Warehouse are built in; the other three are examples you can edit (walls, zones, beacons) and save over, or save under a new name.</div>
       </div>
       <div class="row"><button class="btn sm" id="b-trail">Trail: on</button><button class="btn sm" id="b-reset">Clear trail</button><span class="note" id="n-path">Path: 0.0 m</span></div>
     </div>

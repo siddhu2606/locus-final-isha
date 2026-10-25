@@ -25,7 +25,11 @@ const BM = new BeaconMover(), BSIM = {}, TELE = {}, BRNG = rngMake(99);   /* own
    The receiver phone reads its own motion sensors too. Still -> LOCUS holds the position and keeps averaging (no wandering dot);
    walking -> its steps and compass move the estimate and Bluetooth corrects the drift. Demo: the same, from the walker's true path. */
 const RF = {}, RX = { tele: null, pend: 0, last: null };
-function rxMotion(live, truth) {
+/* still, but the radio keeps disagreeing (phone slid on a table, carried without steps): release the hold for 3 s */
+function holdCheck(m) { if (!m || !m.still || !cur || !cur.out || !cur.ls) return m; const off = Math.hypot(cur.ls[0] - cur.out.pos[0], cur.ls[1] - cur.out.pos[1]);
+  RX.dis = off > Math.max(1.2, 0.8 * cur.out.ell.a) ? (RX.dis || 0) + 0.1 : Math.max(0, (RX.dis || 0) - 0.05); if (RX.dis > 1.5) RX.free = S.clock + 3; return S.clock < (RX.free || 0) ? null : m; }
+function rxMotion(live, truth) { return holdCheck(rxMotion0(live, truth)); }
+function rxMotion0(live, truth) {
   if (!live || (S.phoneSrc === 'sim' && truth)) {
     if (!truth) return null; const l = RX.last; RX.last = truth.slice(); if (!l) return { still: true };
     const dx = truth[0] - l[0], dy = truth[1] - l[1]; if (Math.hypot(dx, dy) < 0.004) return { still: true };
@@ -51,7 +55,8 @@ function beaconSense(live) {
   const t = S.clock;
   if (!live || S.phoneSrc === 'sim') { BeaconMover.simulate(BSIM, S.anchors, t, BRNG, S.dead, wallsBetween); S.anchors.forEach(a => { const m = BSIM[a.b].out; BM.tele(a.b, t, m); TELE[a.b] = { ...m, t }; }); }
   BM.mapUp = S.mapUp || 0;
-  BM.step(S.anchors.map(a => ({ b: a.b, x: a.x, y: a.y, z: a.z })), t, S.W, S.H, wallsBetween).forEach(u => {
+  const c0 = cur, rxRef = S.rxStill && c0 && c0.out && c0.out.ell.a < 1.5 && c0.meas.length === S.anchors.length ? b => { const j = S.anchors.findIndex(a => a.b === b), m = j >= 0 && c0.meas[j]; return m ? [{ x: c0.out.pos[0], y: c0.out.pos[1], r: m.r, b: 'R' }] : []; } : null;
+  BM.step(S.anchors.map(a => ({ b: a.b, x: a.x, y: a.y, z: a.z })), t, S.W, S.H, wallsBetween, rxRef).forEach(u => {
     const i = S.anchors.findIndex(a => a.b === u.b), a = S.anchors[i]; if (i < 0) return;
     eng.loc.moveAnchor(i, u.x, u.y, u.sd); a.sd = u.sd; a.sense = u.why; a.senseT = t; if (live && S.phoneSrc !== 'sim') { a.tx = a.x; a.ty = a.y; a.hx = a.x; a.hy = a.y; }
   });
@@ -101,9 +106,9 @@ const T0 = Date.now(); function clockStr(s) { return new Date(T0 + s * 1000).toT
 
 /* ---------- tagged objects (wheelchairs, oxygen, pumps ..., patient P-112, nurse N-204) ---------- */
 function drawAssets() {
-  if (!S.assets || !S.show.obj) return;
+  if (!S.assets) return;
   S.assets.items.forEach(a => {
-    if (!a.est) return; const ty = ASSET_TYPES[a.type], f = P(a.est[0], a.est[1], 0), tp = P(a.est[0], a.est[1], a.z), on = a.seen != null && S.assets.t - a.seen < 3, foc = S.focus === a.id;
+    if (!a.est || (!S.show.obj && S.focus !== a.id)) return;   /* by default only the object you asked about (Objects tab / ISHA) */ const ty = ASSET_TYPES[a.type], f = P(a.est[0], a.est[1], 0), tp = P(a.est[0], a.est[1], a.z), on = a.seen != null && S.assets.t - a.seen < 3, foc = S.focus === a.id;
     if (S.view.tilt < 89) line(f, tp, 'rgba(11,58,74,.25)', 1, [2, 2]);
     if (foc) { g.beginPath(); g.arc(tp[0], tp[1], 20, 0, 7); g.strokeStyle = '#F5A524'; g.lineWidth = 3; g.stroke(); }
     g.globalAlpha = on ? 1 : 0.45; const w = 13; g.beginPath(); g.roundRect ? g.roundRect(tp[0] - w, tp[1] - 9, 2 * w, 18, 5) : g.rect(tp[0] - w, tp[1] - 9, 2 * w, 18); g.fillStyle = ty.col; g.fill(); g.lineWidth = 1.5; g.strokeStyle = '#fff'; g.stroke();
@@ -213,13 +218,13 @@ const Phone = (() => {
     cd = String(cd || '').replace(/\D/g, '');
     if (!/^\d{6}$/.test(cd)) { say('Type the <b>6-digit code</b> shown on the receiver phone.'); return; }
     leave(true); code = cd; lastRx = 0; if (S.mode !== 'live') setMode('live'); say('Connecting to phone <b>' + cd + '</b>…');
-    relay = new Relay(cd, 'laptop', onData, s => { if (s === 'online') { say('Waiting for phone <b>' + cd + '</b>…'); relay.send({ t: 'join' }); } else if (s === 'offline') say('Internet link dropped, reconnecting…'); });
+    relay = new MultiLink(cd, 'laptop', onData, s => { if (s === 'online') { if (!live()) say('Waiting for phone <b>' + cd + '</b>…'); relay.send({ t: 'join' }); } else if (s === 'offline') say('Internet link dropped, reconnecting…'); });
     relay.connect(); $('b-unpair').disabled = false;
     setTimeout(() => { if (code === cd && !live()) say('No data from phone <b>' + cd + '</b> yet. On the phone: Receiver screen open, internet on. Check the code.'); }, 10000);
   }
   function onData(d) {
     const now = performance.now(); lastRx = now;
-    if (!S.link || S.linkKind !== 'code') { S.link = true; S.linkKind = 'code'; srcPill(); cfgDirty = true; say('Linked to the receiver phone <b>' + code + '</b>.'); }
+    if (!S.link || S.linkKind !== 'code') { S.link = true; S.linkKind = 'code'; srcPill(); cfgDirty = true; say('Linked to the receiver phone <b>' + code + '</b> via ' + relay.pathNames().join(' + ') + '.'); }
     if (d.t === 's') {
       (d.s || []).forEach(q => { S.samples.push({ b: q[0], rssi: q[1], t: now - (q[2] || 0) }); if (q[3] != null) { const a = S.all.find(x => x.b === q[0]); if (a && q[3] > 0 && Math.abs(a.z - q[3] / 10) > 0.05) { a.z = q[3] / 10; renderAnchors(); buildTable(); cfgDirty = true; } } });
       if (d.src) S.phoneSrc = d.src;

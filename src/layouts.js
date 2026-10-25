@@ -36,7 +36,6 @@ function snapshotLayout(name) {
 function applyLayout(L) {
   if (!L || !Array.isArray(L.slots)) throw new Error('not a LOCUS layout');
   const num = (v, lo, hi, d) => isFinite(+v) && v !== null && v !== '' ? Math.min(hi, Math.max(lo, +v)) : d;
-  if (S.mode === 'live' && L.space !== 'room') throw new Error('real phones need a room layout; switch the source to Demo to open a site');
   if (L.space === 'hospital' || L.space === 'warehouse') { setSpace(L.space); }
   else {
     S.plan = { walls: (L.walls || []).filter(w => w.length === 4 && w.every(isFinite)).map(w => w.map(Number)), rooms: (L.rooms || []).filter(r => r && r.name && r.r && r.r.length === 4).map((r, i) => ({ id: String(r.id || 'z' + i), name: String(r.name).slice(0, 30), r: r.r.map(Number) })) };
@@ -48,6 +47,7 @@ function applyLayout(L) {
 }
 function renderLayouts() {
   const L = layoutStore(), cur = S.layName;
+  const qs = $('q-lay'); if (qs) { qs.innerHTML = BP_SITES.map(b => `<option value="site:${b.site}">${b.icon} ${b.name}</option>`).join('') + Object.keys(L).map(k => `<option value="lay:${escH(k)}">${L[k].icon || '📐'} ${escH(k)}</option>`).join('') + (cur ? '' : '<option value="" selected>My room (unsaved)</option>'); qs.value = cur ? (BP_SITES.some(b => b.name === cur) ? 'site:' + BP_SITES.find(b => b.name === cur).site : 'lay:' + cur) : ''; }
   $('bp-list').innerHTML = BP_SITES.map(b => `<button class="bp${cur === b.name ? ' on' : ''}" data-site="${b.site}"><i>${b.icon}</i><b>${b.name}</b><span>${b.note}</span><em>built in</em></button>`).join('') +
     Object.keys(L).map(k => `<button class="bp${cur === k ? ' on' : ''}" data-name="${escH(k)}"><i>${L[k].icon || '📐'}</i><b>${escH(k)}</b><span>${L[k].space === 'room' ? L[k].W + ' × ' + L[k].H + ' m · ' + (L[k].rooms || []).length + ' zones · ' + (L[k].walls || []).length + ' walls' : L[k].space}</span><em>editable</em></button>`).join('');
   $('l-name').placeholder = 'Name, e.g. ' + (S.space === 'room' ? 'Ward 7 night shift' : 'My ' + S.space);
@@ -101,6 +101,8 @@ function bindLayouts() {
   $('l-exp').onclick = () => { const L = snapshotLayout(S.layName || 'LOCUS layout'), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(L, null, 1)], { type: 'application/json' })); a.download = (L.name || 'locus_layout').replace(/[^\w-]+/g, '_') + '.json'; a.click(); };
   $('l-imp').onclick = () => $('l-file').click();
   $('l-file').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { const L = JSON.parse(r.result), nm = (L.name || f.name.replace(/\.json$/, '')).slice(0, 40), st = layoutStore(); L.name = nm; st[nm] = L; LS2(st); applyLayout(L); lnote('Imported "' + nm + '".'); } catch (x) { lnote('Could not import: ' + x.message, 1); } }; r.readAsText(f); e.target.value = ''; };
+  $('q-lay').onchange = e => { const v = e.target.value; if (!v) return; try { if (v.startsWith('site:')) applyLayout({ name: BP_SITES.find(b => b.site === v.slice(5)).name, space: v.slice(5), slots: [] }); else applyLayout(layoutStore()[v.slice(4)]); } catch (x) { lnote('Could not open: ' + x.message, 1); } };
+  $('l-edit').onclick = () => { if (S.space !== 'room') { lnote('Hospital and Warehouse walls are fixed. Open My room or an editable blueprint to draw walls.', 1); return; } document.querySelector('.tabs button[data-t=space]').click(); setTimeout(() => { $('ed-box').scrollIntoView({ block: 'center' }); setEdit('wall'); }, 50); };
   document.querySelectorAll('#ed-tools [data-ed]').forEach(b => b.onclick = () => setEdit(b.dataset.ed));
   $('ed-clear').onclick = () => { S.plan = { walls: [], rooms: [] }; planChanged('Walls and zones cleared.'); };
   $('z-list').onclick = e => { const b = e.target.closest('button[data-z]'); if (b) { S.plan.rooms.splice(+b.dataset.z, 1); planChanged('Zone removed.'); } };

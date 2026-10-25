@@ -5,7 +5,7 @@
 const RELAY_BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
 class Relay {
   /* role 'phone' publishes up / listens down; role 'laptop' the reverse. onMsg(obj), onState('connecting'|'online'|'offline', broker) */
-  constructor(code, role, onMsg, onState) { this.code = code; this.role = role; this.onMsg = onMsg; this.onState = onState || (() => { }); this.bi = 0; this.ws = null; this.on = false; this.closed = false; this.buf = new Uint8Array(0); this.pid = 1; }
+  constructor(code, role, onMsg, onState, broker) { this.fixed = broker != null; this.code = code; this.role = role; this.onMsg = onMsg; this.onState = onState || (() => { }); this.bi = broker || 0; this.ws = null; this.on = false; this.closed = false; this.buf = new Uint8Array(0); this.pid = 1; }
   get topicOut() { return 'locus-isha/' + this.code + (this.role === 'phone' ? '/up' : '/down'); }
   get topicIn() { return 'locus-isha/' + this.code + (this.role === 'phone' ? '/down' : '/up'); }
   connect() {
@@ -14,16 +14,16 @@ class Relay {
     this.ws = ws; ws.binaryType = 'arraybuffer'; const t0 = setTimeout(() => { if (!this.on) try { ws.close(); } catch (e) { } }, 7000);
     ws.onopen = () => { const id = 'locus-' + this.role + '-' + Math.random().toString(36).slice(2, 10); ws.send(Relay._pkt(0x10, [...Relay._str('MQTT'), 4, 0x02, 0, 30], Relay._str(id))); };
     ws.onmessage = e => { const d = new Uint8Array(e.data), b = new Uint8Array(this.buf.length + d.length); b.set(this.buf); b.set(d, this.buf.length); this.buf = b; this._drain(); };
-    ws.onclose = ws.onerror = () => { clearTimeout(t0); if (this.ws !== ws) return; const was = this.on; this.on = false; this.ws = null; clearInterval(this.ping); if (was) this.onState('offline', url); else this.bi++; this._retry(); };
+    ws.onclose = ws.onerror = () => { clearTimeout(t0); if (this.ws !== ws) return; const was = this.on; this.on = false; this.ws = null; clearInterval(this.ping); if (was) this.onState('offline', url); else if (!this.fixed) this.bi++; this._retry(); };
   }
-  _retry() { if (!this.closed) setTimeout(() => this.connect(), this.on ? 500 : 1500); }
+  _retry() { if (!this.closed) setTimeout(() => this.connect(), this.on ? 500 : this.fixed ? 4000 : 1500); }
   _drain() {
     for (;;) {
       const b = this.buf; if (b.length < 2) return; let mul = 1, len = 0, i = 1, byte;
       do { if (i >= b.length) return; byte = b[i++]; len += (byte & 127) * mul; mul *= 128; } while (byte & 128);
       if (b.length < i + len) return; const type = b[0] >> 4, body = b.subarray(i, i + len); this.buf = b.slice(i + len);
       if (type === 2) {   /* CONNACK */
-        if (body[1] !== 0) { this.bi++; try { this.ws.close(); } catch (e) { } return; }
+        if (body[1] !== 0) { if (!this.fixed) this.bi++; try { this.ws.close(); } catch (e) { } return; }
         this.on = true; this.onState('online', RELAY_BROKERS[this.bi % RELAY_BROKERS.length]);
         this.ws.send(Relay._pkt(0x82, [0, (this.pid++ & 0xffff) || 1], [...Relay._str(this.topicIn), 0]));
         clearInterval(this.ping); this.ping = setInterval(() => { try { this.ws && this.ws.send(new Uint8Array([0xC0, 0])); } catch (e) { } }, 20000);

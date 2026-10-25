@@ -10,7 +10,7 @@ const S = {
   anchors: [], all: null, k: 4, sel: 0, dead: new Set(), obstruct: new Set(), drift: new Set(),
   model: 'rssi', sigDb: 4, sigM: 0.6, loss: 0.1, rssi1m: -59, pn: 2.2, scorer: 'fused',
   mode: 'demo', host: '', samples: [], seq: 0, link: false, liveTruth: null, calib: null, heard: {},
-  view: { tilt: 90, yaw: 0, zoom: 1 }, show: { truth: true, locus: true, ls: false, kf: false, pt: true, obj: true, links: true }, shieldSet: new Set(),
+  view: { tilt: 90, yaw: 0, zoom: 1 }, show: { truth: true, locus: true, ls: false, kf: false, pt: true, obj: false, links: false }, shieldSet: new Set(),
 };
 const SAVED = ['roomW', 'roomH', 'Z', 'k', 'zDev', 'model', 'sigDb', 'loss', 'rssi1m', 'pn', 'host'];
 let savedSlots = null;
@@ -135,7 +135,7 @@ function liveMeas(assumedZ) {
 function setMode(m) {
   S.mode = m; $('b-demo').setAttribute('aria-pressed', m === 'demo'); $('b-live').setAttribute('aria-pressed', m === 'live');
   $('o-live').style.display = m === 'live' ? 'flex' : 'none'; $('o-demo').style.display = m === 'demo' ? 'flex' : 'none'; $('n-https').style.display = m === 'live' && location.protocol === 'https:' ? 'block' : 'none';
-  if (m === 'live' && S.space !== 'room') setSpace('room');   /* real phones are in a real room: set its size and where each beacon phone is */
+  if (m === 'live' && S.space !== 'room') setSpace('room');   /* real phones start in your own room; any saved layout can be picked after */
   if (m === 'live') S.all.forEach(a => a.mv = false);
   S.samples = []; S.heard = {}; S.liveTruth = null; S.trail = []; S.estTrail = []; S.path = 0; S.pp = null; newEngine(); renderAnchors();
   if (m === 'demo') { stopLive(); setSource(S.src === 'live' ? 'demo' : S.src); } else { if (S.src === 'touch') setSource('demo'); S.src = 'live'; srcPill(); if ($('i-host').value.trim()) startLive(); }
